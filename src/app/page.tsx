@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { Appointment, AppointmentStatus } from '@/types/appointment';
+import { Appointment, AppointmentStatus, TIME_SLOTS } from '@/types/appointment';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, getDay, isToday, eachMonthOfInterval, startOfYear, parseISO, addDays, subDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { logout, getSession } from '@/lib/auth';
@@ -38,10 +38,14 @@ export default function Dashboard() {
 
   // Estado para servicios
   const [services, setServices] = useState([
-    { id: '1', name: 'Bano y corte', description: 'Bano completo con corte de pelo', duration: 45, price: 100, emoji: '✂️', active: true },
-    { id: '2', name: 'Recuperacion de manto', description: 'Tratamiento especial para pelaje', duration: 30, price: 150, emoji: '🧴', active: true },
+    { id: '1', name: 'Baño básico', description: 'Baño con shampoo, secado y cepillado', duration: 30, price: 100, emoji: '🛁', active: true },
+    { id: '2', name: 'Baño + Corte', description: 'Baño completo más corte de pelo al estilo de la raza', duration: 60, price: 150, emoji: '✂️', active: true },
+    { id: '3', name: 'Paquete completo', description: 'Baño + corte + uñas + oídos', duration: 105, price: 200, emoji: '⭐', active: true },
+    { id: '4', name: 'Recuperación de manto', description: 'Servicio adicional con costo extra', duration: 45, price: 80, emoji: '🧶', active: true, isAdditional: true },
   ]);
   const [serviceModal, setServiceModal] = useState<{ mode: 'add' | 'edit'; service?: typeof services[0] } | null>(null);
+  const [newAppointmentModal, setNewAppointmentModal] = useState(false);
+  const [editServiceModal, setEditServiceModal] = useState<{ appointment: Appointment; serviceId: string; additionalService: boolean; recoveryTime: number } | null>(null);
 
   // Estado para configuracion
   const [config, setConfig] = useState({
@@ -71,8 +75,12 @@ export default function Dashboard() {
   }, [router]);
 
   const handleLogout = () => {
+    // Clear session first
     logout();
-    router.push('/login');
+    // Clear user state
+    setUser(null);
+    // Use replace to avoid going back to dashboard
+    window.location.href = '/login';
   };
 
   const userPermissions: readonly Permission[] = user ? PERMISSIONS[user.role] : [];
@@ -476,11 +484,24 @@ export default function Dashboard() {
           <h3 className="text-lg font-semibold text-gray-900">
             {selectedDate ? `Citas del ${format(selectedDate, 'EEEE d', { locale: es })} de ${format(selectedDate, 'MMMM', { locale: es })}` : 'Selecciona un día'}
           </h3>
-          {selectedDate && (
-            <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-              {selectedDateAppointments.length} {selectedDateAppointments.length === 1 ? 'cita' : 'citas'}
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {selectedDate && (
+              <button
+                onClick={() => setNewAppointmentModal(true)}
+                className="flex items-center gap-1 px-3 py-1.5 bg-[#E8943D] hover:bg-[#E8943D]/90 text-white text-sm rounded-lg transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Nueva Cita
+              </button>
+            )}
+            {selectedDate && (
+              <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                {selectedDateAppointments.length} {selectedDateAppointments.length === 1 ? 'cita' : 'citas'}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Lista de citas - scroll interno */}
@@ -552,8 +573,35 @@ export default function Dashboard() {
                         {/* Servicio */}
                         <div>
                           <p className="text-xs text-gray-500 uppercase">Servicio</p>
-                          <p className="font-medium text-gray-900">
-                            {apt.additional_service ? 'Recuperación de manto' : 'Baño y corte'}
+                          <div className="flex items-center gap-2 mt-1">
+                            <p className="font-medium text-gray-900">
+                              {apt.service_name || (apt.additional_service ? 'Recuperación de manto' : 'Baño y corte')}
+                            </p>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditServiceModal({
+                                  appointment: apt,
+                                  serviceId: apt.serviceId || apt.service_id || '',
+                                  additionalService: apt.additional_service || apt.additionalService || false,
+                                  recoveryTime: apt.recovery_time || apt.recoveryTime || 0,
+                                });
+                              }}
+                              className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                              title="Editar servicio"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                              </svg>
+                            </button>
+                          </div>
+                          {(apt.additional_service || apt.additionalService) && (
+                            <span className="inline-block mt-1 px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded-full">
+                              Recuperación de manto
+                            </span>
+                          )}
+                          <p className="text-xs text-gray-500 mt-1">
+                            Duración: {apt.base_time_minutes || apt.base_time_minutes || 45}{(apt.recovery_time || apt.recoveryTime) ? ` + ${apt.recovery_time || apt.recoveryTime}` : ''} min = {(apt.base_time_minutes || apt.base_time_minutes || 45) + (apt.recovery_time || apt.recoveryTime || 0)} min
                           </p>
                         </div>
                         {/* Estado actual */}
@@ -1403,110 +1451,6 @@ export default function Dashboard() {
         </table>
       </div>
 
-      {/* Modal para agregar/editar servicio */}
-      {serviceModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              {serviceModal.mode === 'add' ? 'Nuevo Servicio' : 'Editar Servicio'}
-            </h3>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                const formData = new FormData(e.currentTarget);
-                const newService = {
-                  id: serviceModal.service?.id || Date.now().toString(),
-                  name: formData.get('name') as string,
-                  description: formData.get('description') as string,
-                  duration: parseInt(formData.get('duration') as string),
-                  price: parseInt(formData.get('price') as string),
-                  emoji: formData.get('emoji') as string,
-                  active: true,
-                };
-                if (serviceModal.mode === 'add') {
-                  setServices([...services, newService]);
-                } else {
-                  setServices(services.map(s => s.id === newService.id ? newService : s));
-                }
-                setServiceModal(null);
-              }}
-              className="space-y-4"
-            >
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Icono</label>
-                <input
-                  name="emoji"
-                  defaultValue={serviceModal.service?.emoji || ''}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E8943D]"
-                  placeholder="✂️"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
-                <input
-                  name="name"
-                  defaultValue={serviceModal.service?.name || ''}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E8943D]"
-                  placeholder="Bano y corte"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Descripcion</label>
-                <textarea
-                  name="description"
-                  defaultValue={serviceModal.service?.description || ''}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E8943D]"
-                  placeholder="Descripcion del servicio"
-                  rows={2}
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Duracion (min)</label>
-                  <input
-                    name="duration"
-                    type="number"
-                    defaultValue={serviceModal.service?.duration || 45}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E8943D]"
-                    min="15"
-                    step="15"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Precio (Q)</label>
-                  <input
-                    name="price"
-                    type="number"
-                    defaultValue={serviceModal.service?.price || 100}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E8943D]"
-                    min="0"
-                    required
-                  />
-                </div>
-              </div>
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setServiceModal(null)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2 bg-[#E8943D] hover:bg-[#E8943D]/90 text-white rounded-lg transition-colors"
-                >
-                  {serviceModal.mode === 'add' ? 'Agregar' : 'Guardar'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 
@@ -1874,7 +1818,298 @@ export default function Dashboard() {
           {currentView === 'servicios' && canViewReports && renderServicesView()}
           {currentView === 'configuracion' && canViewReports && renderConfigView()}
         </main>
+
+        {/* Modal para nueva cita */}
+        {newAppointmentModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white border-b px-6 py-4 rounded-t-xl">
+                <h3 className="text-lg font-semibold text-gray-900">Nueva Cita</h3>
+                <p className="text-sm text-gray-500">{selectedDate ? format(selectedDate as Date, 'EEEE d MMMM', { locale: es }) : 'Sin fecha seleccionada'}</p>
+              </div>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const formData = new FormData(e.currentTarget);
+
+                  const selectedServiceId = formData.get('serviceId') as string;
+                  const selectedService = services.find(s => s.id === selectedServiceId);
+                  const additionalSvc = services.find(s => s.isAdditional);
+                  const isAdditional = formData.get('additionalService') === 'true';
+
+                  const newAppointment: Appointment = {
+                    id: Date.now().toString(),
+                    createdAt: new Date().toISOString(),
+                    petName: formData.get('petName') as string,
+                    petSize: formData.get('petSize') as string,
+                    petBreed: formData.get('petBreed') as string,
+                    petBreedEmoji: formData.get('petBreedEmoji') as string || '🐕',
+                    serviceId: selectedServiceId,
+                    serviceName: selectedService?.name || 'Baño y corte',
+                    baseTimeMinutes: selectedService?.duration || 45,
+                    ownerName: formData.get('ownerName') as string,
+                    whatsapp: formData.get('whatsapp') as string,
+                    comments: formData.get('comments') as string,
+                    additionalService: isAdditional,
+                    recoveryTime: isAdditional ? (additionalSvc?.duration || 45) : 0,
+                    date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : todayStr,
+                    time: formData.get('time') as string,
+                    status: 'pendiente',
+                  };
+
+                  setAppointments([...appointments, newAppointment]);
+                  setNewAppointmentModal(false);
+                }}
+                className="p-6 space-y-4"
+              >
+                <div className="border-b pb-4">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3">Datos de la Mascota</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="col-span-2">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Nombre de la mascota</label>
+                      <input name="petName" required className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E8943D] text-sm" placeholder="Nombre" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Tamaño</label>
+                      <select name="petSize" required className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E8943D] text-sm">
+                        <option value="">Seleccionar</option>
+                        <option value="pequeño">Pequeño</option>
+                        <option value="mediano">Mediano</option>
+                        <option value="grande">Grande</option>
+                        <option value="gigante">Gigante</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Raza/Emoji</label>
+                      <select name="petBreedEmoji" className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E8943D] text-sm">
+                        <option value="🐕">🐕 Perro</option>
+                        <option value="🐩">🐩 Poodle</option>
+                        <option value="🐶">🐶 Cachorro</option>
+                        <option value="🐕‍🦺">🐕‍🦺 Alaska</option>
+                        <option value="🐾">🐾 Gato</option>
+                        <option value="🐈">🐈 Gato</option>
+                      </select>
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Raza/Edad (opcional)</label>
+                      <input name="petBreed" className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E8943D] text-sm" placeholder="Ej: Golden Retriever, 3 años" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-b pb-4">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3">Servicio principal</h4>
+                  <div className="space-y-2">
+                    {services.filter(s => s.active && !s.isAdditional).map(service => (
+                      <label key={service.id} className="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                        <div className="flex items-center gap-3">
+                          <input type="radio" name="serviceId" value={service.id} defaultChecked={services.filter(s => s.active && !s.isAdditional)[0]?.id === service.id} required className="text-[#E8943D]" />
+                          <div>
+                            <p className="font-medium text-sm">{service.emoji} {service.name}</p>
+                            <p className="text-xs text-gray-500">{service.duration} min • Q{service.price}</p>
+                          </div>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+
+                  {/* Recuperación de manto como checkbox separado */}
+                  {services.find(s => s.isAdditional && s.active) && (
+                    <div className="mt-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                      <label className="flex items-center gap-2">
+                        <input type="checkbox" name="additionalService" value="true" className="rounded text-purple-600" />
+                        <span className="text-sm font-medium text-purple-700">{services.find(s => s.isAdditional)?.emoji} {services.find(s => s.isAdditional)?.name}</span>
+                        <span className="text-xs text-purple-600">+{services.find(s => s.isAdditional)?.duration} min</span>
+                      </label>
+                    </div>
+                  )}
+                </div>
+
+                <div className="border-b pb-4">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3">Fecha y Hora</h4>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Hora disponible</label>
+                    <select name="time" required className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E8943D] text-sm">
+                      <option value="">Seleccionar hora</option>
+                      {TIME_SLOTS.filter(time => {
+                        const dateKey = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : todayStr;
+                        return !appointments.some(a => a.date === dateKey && a.time === time && a.status !== 'cancelada');
+                      }).map(time => (
+                        <option key={time} value={time}>{time}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="border-b pb-4">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3">Datos del Cliente</h4>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Nombre del dueño</label>
+                      <input name="ownerName" required className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E8943D] text-sm" placeholder="Nombre completo" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">WhatsApp</label>
+                      <div className="flex">
+                        <span className="inline-flex items-center px-3 py-2 border border-r-0 rounded-l-lg bg-gray-50 text-sm text-gray-500">+502</span>
+                        <input name="whatsapp" required type="tel" pattern="[0-9]{8}" maxLength={8} className="flex-1 px-3 py-2 border rounded-r-lg focus:outline-none focus:ring-2 focus:ring-[#E8943D] text-sm" placeholder="12345678" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Notas (opcional)</label>
+                  <textarea name="comments" rows={2} className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E8943D] text-sm" placeholder="Notas especiales..." />
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button type="button" onClick={() => setNewAppointmentModal(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">Cancelar</button>
+                  <button type="submit" className="flex-1 px-4 py-2 bg-[#E8943D] hover:bg-[#E8943D]/90 text-white rounded-lg transition-colors">Crear Cita</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Modal para editar servicio */}
+      {editServiceModal && (() => {
+        const selectedService = services.find(s => s.id === editServiceModal.serviceId);
+        const totalDuration = (selectedService?.duration || 45) + editServiceModal.recoveryTime;
+
+        // Verificar cruces con otras citas
+        const aptDate = editServiceModal.appointment.date;
+        const aptTime = editServiceModal.appointment.time;
+        const [hours, minutes] = aptTime.split(':').map(Number);
+        const endMinutes = hours * 60 + minutes + totalDuration;
+
+        const hasConflict = appointments.some(a =>
+          a.id !== editServiceModal.appointment.id &&
+          a.date === aptDate &&
+          a.status !== 'cancelada' &&
+          (() => {
+            const [ah, am] = a.time.split(':').map(Number);
+            const aEnd = ah * 60 + am + (a.base_time_minutes || a.base_time_minutes || 45) + (a.recovery_time || a.recoveryTime || 0);
+            return (hours * 60 + minutes < aEnd && endMinutes > ah * 60 + am);
+          })()
+        );
+
+        // Verificar cruce con horario de almuerzo
+        const [lunchStartH, lunchStartM] = (config.lunchStart || '12:00').split(':').map(Number);
+        const [lunchEndH, lunchEndM] = (config.lunchEnd || '13:00').split(':').map(Number);
+        const lunchStart = lunchStartH * 60 + lunchStartM;
+        const lunchEnd = lunchEndH * 60 + lunchEndM;
+        const hasLunchConflict = config.lunchEnabled && (hours * 60 + minutes < lunchEnd && endMinutes > lunchStart);
+
+        const showWarning = hasConflict || hasLunchConflict;
+
+        return (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl w-full max-w-md">
+              <div className="border-b px-6 py-4">
+                <h3 className="text-lg font-semibold text-gray-900">Editar Servicio</h3>
+                <p className="text-sm text-gray-500">{editServiceModal.appointment.petName || editServiceModal.appointment.pet_name}</p>
+              </div>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const formData = new FormData(e.currentTarget);
+                  const newServiceId = formData.get('serviceId') as string;
+                  const newService = services.find(s => s.id === newServiceId);
+                  const isAdditional = formData.get('additionalService') === 'true';
+                  const recoveryTime = formData.get('recoveryTime') ? parseInt(formData.get('recoveryTime') as string) : 0;
+
+                  const updatedAppointment = {
+                    ...editServiceModal.appointment,
+                    serviceId: newServiceId,
+                    serviceName: newService?.name || 'Baño y corte',
+                    baseTimeMinutes: newService?.duration || 45,
+                    additionalService: isAdditional,
+                    recoveryTime: recoveryTime,
+                  };
+
+                  setAppointments(appointments.map(a => a.id === updatedAppointment.id ? updatedAppointment : a));
+                  setEditServiceModal(null);
+                }}
+                className="p-6 space-y-4"
+              >
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Servicio</label>
+                  <div className="space-y-2">
+                    {services.filter(s => s.active).map(service => (
+                      <label key={service.id} className="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="radio"
+                            name="serviceId"
+                            value={service.id}
+                            defaultChecked={editServiceModal.serviceId === service.id}
+                            className="text-[#E8943D]"
+                          />
+                          <div>
+                            <p className="font-medium text-sm">{service.emoji} {service.name}</p>
+                            <p className="text-xs text-gray-500">{service.duration} min • Q{service.price}</p>
+                          </div>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      name="additionalService"
+                      defaultChecked={editServiceModal.additionalService}
+                      onChange={(e) => {
+                        const recoveryInput = document.getElementById('recoveryTimeInput') as HTMLInputElement;
+                        if (recoveryInput) {
+                          recoveryInput.disabled = !e.target.checked;
+                          if (!e.target.checked) recoveryInput.value = '';
+                        }
+                      }}
+                      className="rounded text-[#E8943D]"
+                    />
+                    <span>Recuperación de manto (servicio adicional)</span>
+                  </label>
+                  <input
+                    id="recoveryTimeInput"
+                    name="recoveryTime"
+                    type="number"
+                    defaultValue={editServiceModal.recoveryTime || ''}
+                    disabled={!editServiceModal.additionalService}
+                    className="mt-2 w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E8943D] text-sm disabled:opacity-50"
+                    placeholder="Minutos adicionales"
+                    min="15"
+                    step="15"
+                  />
+                </div>
+
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-600">
+                    <span className="font-medium">Duración estimada total:</span> {totalDuration} minutos
+                  </p>
+                </div>
+
+                {showWarning && (
+                  <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-700">
+                      ⚠️ El nuevo servicio dura {totalDuration} min y se cruza{hasConflict ? ' con otra cita' : ''}{hasConflict && hasLunchConflict ? ' y' : ''}{hasLunchConflict ? ' con el horario de almuerzo' : ''}. ¿Deseas continuar?
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex gap-3 pt-2">
+                  <button type="button" onClick={() => setEditServiceModal(null)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">Cancelar</button>
+                  <button type="submit" className="flex-1 px-4 py-2 bg-[#E8943D] hover:bg-[#E8943D]/90 text-white rounded-lg transition-colors">Guardar</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Modal para mensaje personalizado */}
       {customMessageModal && (
