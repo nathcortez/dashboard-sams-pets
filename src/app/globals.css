@@ -3,6 +3,16 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Sam's Pets Brand Colors */
+  --azul-principal: #4A6FA5;
+  --azul-oscuro: #2E4A7A;
+  --azul-claro: #7BB3E0;
+  --naranja: #E8943D;
+  --amarillo: #F5B731;
+  --verde-limon: #C5D432;
+  --purpura: #5B4B9E;
+  --gris: #8A8A8A;
 }
 
 @theme inline {
@@ -10,13 +20,16 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Sam's Pets Brand Colors */
+  --color-azul-principal: #4A6FA5;
+  --color-azul-oscuro: #2E4A7A;
+  --color-azul-claro: #7BB3E0;
+  --color-naranja: #E8943D;
+  --color-amarillo: #F5B731;
+  --color-verde-limon: #C5D432;
+  --color-purpura: #5B4B9E;
+  --color-gris: #8A8A8A;
 }
 
 body {
