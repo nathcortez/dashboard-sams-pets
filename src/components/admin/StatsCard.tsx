@@ -17,11 +17,11 @@ export default function StatsCard({ title, value, icon, color }: StatsCardProps)
   };
 
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-md">
+    <div className="bg-white rounded-2xl p-6 shadow-md">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-[--gris]">{title}</p>
-          <p className="text-3xl font-bold text-[--azul-oscuro] mt-1">{value}</p>
+          <p className="text-[10px] uppercase tracking-[0.08em] text-[#6B6B6B]">{title}</p>
+          <p className="text-[32px] font-bold text-[#1C1C1C] mt-1">{value}</p>
         </div>
         <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl ${colorClasses[color]}`}>
           {icon}

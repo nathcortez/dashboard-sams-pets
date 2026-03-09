@@ -331,7 +331,7 @@ export default function Dashboard() {
   const getStatusColor = (status: AppointmentStatus) => {
     switch (status) {
       case 'pendiente': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'confirmada': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'confirmada': return 'bg-[#E8F5E9] text-blue-800 border-blue-200';
       case 'completada': return 'bg-green-100 text-green-800 border-green-200';
       case 'cancelada': return 'bg-red-100 text-red-800 border-red-200';
     }
@@ -391,35 +391,81 @@ export default function Dashboard() {
     <div className="flex gap-6 h-[calc(100vh-140px)]">
       {/* Columna izquierda (40%) - Calendario mensual compacto */}
       <div className="w-2/5 bg-white rounded-xl shadow-sm border p-4 flex flex-col">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4 text-center">
-          {format(currentMonth, 'MMMM yyyy', { locale: es }).charAt(0).toUpperCase() + format(currentMonth, 'MMMM yyyy', { locale: es }).slice(1)}
-        </h2>
-
         {/* Navegación del mes */}
         <div className="flex items-center justify-between mb-3">
           <button
             onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#F0EDE8] transition-colors"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <span className="text-sm text-gray-500">{format(currentMonth, 'MMMM yyyy', { locale: es })}</span>
+          <h2 className="text-lg font-semibold text-gray-900">
+            {format(currentMonth, 'MMMM yyyy', { locale: es }).charAt(0).toUpperCase() + format(currentMonth, 'MMMM yyyy', { locale: es }).slice(1)}
+          </h2>
           <button
             onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#F0EDE8] transition-colors"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </button>
         </div>
 
+        {/* Fila de resumen de la semana actual */}
+        <div className="bg-white rounded-[12px] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-3 mb-3 max-h-[70px]">
+          <div className="grid grid-cols-7 gap-1">
+            {[
+              { day: 1, label: 'Lun' },
+              { day: 2, label: 'Mar' },
+              { day: 3, label: 'Mié' },
+              { day: 4, label: 'Jue' },
+              { day: 5, label: 'Vie' },
+              { day: 6, label: 'Sáb' },
+              { day: 0, label: 'Dom' },
+            ].map(({ day, label }) => {
+              const today = new Date();
+              const currentDayOfWeek = today.getDay();
+              const adjustedDay = currentDayOfWeek === 0 ? 6 : currentDayOfWeek - 1;
+              const isToday = adjustedDay === day;
+              const weekStart = subDays(today, adjustedDay);
+              const weekDay = addDays(weekStart, day);
+              const dateKey = format(weekDay, 'yyyy-MM-dd');
+              const count = (appointmentsByDate[dateKey] || []).length;
+
+              return (
+                <button
+                  key={day}
+                  onClick={() => { setSelectedDate(weekDay); setCurrentMonth(weekDay); setExpandedAppointment(null); }}
+                  className={`
+                    flex flex-col items-center justify-center py-1 rounded-lg transition-colors
+                    ${isToday ? 'bg-[#EEF4F0]' : 'hover:bg-[#F5F3EE]'}
+                  `}
+                >
+                  <span className={`text-[10px] uppercase tracking-wider ${isToday ? 'text-[#4A7C59]' : 'text-[#9E9E9E]'}`}>
+                    {label}
+                  </span>
+                  <span className={`text-sm font-medium ${isToday ? 'text-[#4A7C59]' : 'text-[#1C1C1C]'}`}>
+                    {format(weekDay, 'd')}
+                  </span>
+                  <span className={`
+                    text-[10px] font-medium px-1.5 py-0.5 rounded-full
+                    ${count === 0 ? 'text-[#9E9E9E]' : isToday ? 'bg-[#4A7C59] text-white' : 'bg-[#F5F3EE] text-[#4A4A4A]'}
+                  `}>
+                    {count === 0 ? '—' : count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Días de la semana */}
         <div className="grid grid-cols-7 gap-1 mb-1">
           {['D', 'L', 'M', 'X', 'J', 'V', 'S'].map(day => (
-            <div key={day} className="text-center text-xs font-medium text-gray-500 py-1">
+            <div key={day} className="text-center text-[11px] font-medium uppercase tracking-wider text-[#9E9E9E] py-1">
               {day}
             </div>
           ))}
@@ -429,7 +475,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-7 gap-1 flex-1">
           {calendarDays.map((day, index) => {
             if (!day) {
-              return <div key={`empty-${index}`} className="h-10" />;
+              return <div key={`empty-${index}`} className="h-[44px]" />;
             }
 
             const dateKey = format(day, 'yyyy-MM-dd');
@@ -437,31 +483,32 @@ export default function Dashboard() {
             const count = dayAppointments.length;
             const isSelected = selectedDate && isSameDay(day, selectedDate);
             const today = isToday(day);
-            const isSunday = getDay(day) === 0;
+            const dayOfWeek = getDay(day);
+            const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
             return (
               <button
                 key={dateKey}
                 onClick={() => { setSelectedDate(day); setExpandedAppointment(null); }}
-                disabled={isSunday}
+                disabled={isWeekend}
                 className={`
-                  h-10 rounded-lg border transition-all flex flex-col items-center justify-center relative
-                  ${isSunday ? 'bg-gray-50 text-gray-300 cursor-not-allowed' : ''}
-                  ${!isSunday && isSelected ? 'border-[#E8943D] bg-[#E8943D]/10' : ''}
-                  ${!isSunday && !isSelected ? 'border-gray-100 hover:border-gray-300 hover:bg-gray-50' : ''}
-                  ${today && !isSunday ? 'ring-2 ring-[#E8943D]/50' : ''}
+                  max-h-[44px] aspect-square rounded-[8px] border transition-all flex flex-col items-center justify-center relative
+                  ${isWeekend ? 'bg-[#FAF7F3] cursor-not-allowed' : ''}
+                  ${!isWeekend && isSelected ? 'bg-[#4A7C59] border-[#4A7C59]' : ''}
+                  ${!isWeekend && !isSelected ? 'border-transparent hover:bg-[#F5F3EE]' : ''}
+                  ${today && !isWeekend && !isSelected ? 'bg-[#4A7C59] text-white' : ''}
                 `}
               >
                 <span className={`
                   text-sm font-medium
-                  ${today ? 'text-[#E8943D]' : isSunday ? 'text-gray-300' : 'text-gray-700'}
+                  ${today ? 'text-white' : isWeekend ? 'text-[#D4D0C8]' : isSelected ? 'text-white' : 'text-[#1C1C1C]'}
                 `}>
                   {format(day, 'd')}
                 </span>
-                {count > 0 && !isSunday && (
+                {count > 0 && !isWeekend && (
                   <span className={`
-                    absolute -bottom-0.5 w-1.5 h-1.5 rounded-full
-                    ${count <= 2 ? 'bg-green-500' : count <= 4 ? 'bg-yellow-500' : 'bg-red-500'}
+                    absolute bottom-0.5 h-[3px] rounded-[2px]
+                    ${isSelected ? 'bg-white w-5' : count <= 2 ? 'bg-[#A8D5B5] w-3' : count <= 4 ? 'bg-[#F5C842] w-4' : 'bg-[#C97B5A] w-5'}
                   `} />
                 )}
               </button>
@@ -470,80 +517,92 @@ export default function Dashboard() {
         </div>
 
         {/* Leyenda */}
-        <div className="mt-3 pt-3 border-t flex justify-center gap-4 text-xs text-gray-500">
-          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500"></span> 1-2</span>
-          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-500"></span> 3-4</span>
-          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500"></span> 5+</span>
+        <div className="mt-3 pt-3 border-t flex justify-center gap-6 text-xs text-gray-500">
+          <span className="flex items-center gap-1"><span className="w-3 h-[3px] rounded-[2px] bg-[#A8D5B5]"></span> 1-2</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-[3px] rounded-[2px] bg-[#F5C842]"></span> 3-4</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-[3px] rounded-[2px] bg-[#C97B5A]"></span> 5+</span>
         </div>
       </div>
 
       {/* Columna derecha (60%) - Detalle del día */}
-      <div className="w-3/5 bg-white rounded-xl shadow-sm border p-4 flex flex-col">
+      <div className="w-3/5 bg-white rounded-xl shadow-sm border p-5 flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between mb-4 pb-3 border-b">
-          <h3 className="text-lg font-semibold text-gray-900">
-            {selectedDate ? `Citas del ${format(selectedDate, 'EEEE d', { locale: es })} de ${format(selectedDate, 'MMMM', { locale: es })}` : 'Selecciona un día'}
+        <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#E8E4DC]">
+          <h3 className="text-[16px] font-semibold text-[#1C1C1C]">
+            {selectedDate ? `${format(selectedDate, 'EEEE d', { locale: es }).charAt(0).toUpperCase() + format(selectedDate, 'EEEE d', { locale: es }).slice(1)} de ${format(selectedDate, 'MMMM', { locale: es }).charAt(0).toUpperCase() + format(selectedDate, 'MMMM', { locale: es }).slice(1)}` : ''}
           </h3>
-          <div className="flex items-center gap-2">
-            {selectedDate && (
-              <button
-                onClick={() => setNewAppointmentModal(true)}
-                className="flex items-center gap-1 px-3 py-1.5 bg-[#E8943D] hover:bg-[#E8943D]/90 text-white text-sm rounded-lg transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Nueva Cita
-              </button>
-            )}
-            {selectedDate && (
-              <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                {selectedDateAppointments.length} {selectedDateAppointments.length === 1 ? 'cita' : 'citas'}
-              </span>
-            )}
-          </div>
+          {selectedDate && selectedDateAppointments.length > 0 && (
+            <button
+              onClick={() => setNewAppointmentModal(true)}
+              className="flex items-center gap-1 px-3 py-1.5 text-sm text-[#4A7C59] hover:bg-[#EEF4F0] rounded-lg transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Nueva cita
+            </button>
+          )}
         </div>
 
         {/* Lista de citas - scroll interno */}
         {!selectedDate ? (
-          <div className="flex-1 flex items-center justify-center text-gray-500">
-            <p>Selecciona un día del calendario para ver las citas</p>
+          <div className="flex-1 flex flex-col items-center justify-center">
+            <div className="text-[#C5BFB5] text-5xl mb-4">📅</div>
+            <p className="text-[#9E9E9E]">Selecciona un día para ver las citas</p>
           </div>
         ) : selectedDateAppointments.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center text-gray-500">
-            <div className="text-center">
-              <p className="text-lg">No hay citas para este día</p>
-              <p className="text-sm mt-1">Selecciona otro día o agenda una nueva cita</p>
+          <div className="flex-1 flex flex-col items-center justify-center">
+            <p className="text-[16px] font-semibold text-[#1C1C1C] mb-4">
+              {`${format(selectedDate, 'EEEE d', { locale: es }).charAt(0).toUpperCase() + format(selectedDate, 'EEEE d', { locale: es }).slice(1)} de ${format(selectedDate, 'MMMM', { locale: es }).charAt(0).toUpperCase() + format(selectedDate, 'MMMM', { locale: es }).slice(1)}`}
+            </p>
+            <div className="w-16 h-16 rounded-full bg-[#F5F3EE] flex items-center justify-center text-3xl mb-4">
+              🐾
             </div>
+            <p className="text-[#4A4A4A] font-medium mb-4">Sin citas para este día</p>
+            <button
+              onClick={() => setNewAppointmentModal(true)}
+              className="px-5 py-2.5 bg-[#4A7C59] hover:bg-[#3D6A4B] text-white text-sm font-medium rounded-[8px] transition-colors"
+            >
+              + Agendar cita
+            </button>
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+          <div className="flex-1 overflow-y-auto space-y-3 pr-1">
             {selectedDateAppointments.map((apt) => {
               const isExpanded = expandedAppointment === apt.id;
+              const statusColor = apt.status === 'pendiente' ? '#F59E0B' : apt.status === 'confirmada' ? '#4A7C59' : apt.status === 'completada' ? '#9CA3AF' : '#EF4444';
 
               return (
                 <div
                   key={apt.id}
                   className={`
-                    border rounded-lg transition-all cursor-pointer
-                    ${isExpanded ? 'border-[#E8943D] bg-[#E8943D]/5' : 'border-gray-200 hover:border-gray-300'}
+                    rounded-lg border transition-all cursor-pointer relative overflow-hidden
+                    ${isExpanded ? 'border-[#4A7C59] bg-[#EEF4F0]/30' : 'border-[#E8E4DC] hover:border-[#4A7C59]'}
                   `}
                   onClick={() => setExpandedAppointment(isExpanded ? null : apt.id)}
                 >
+                  {/* Franja de color según estado */}
+                  <div className={`absolute left-0 top-0 bottom-0 w-[4px]`} style={{ backgroundColor: statusColor }} />
+
                   {/* Vista compactada - siempre visible */}
-                  <div className="flex items-center gap-3 p-3">
+                  <div className="flex items-center gap-3 p-3 pl-4">
                     <div className="w-14 flex-shrink-0">
-                      <span className="text-lg font-bold text-gray-900">{apt.time}</span>
+                      <span className="text-base font-bold text-[#1C1C1C]">{apt.time}</span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-900 truncate">
-                        {apt.pet_name || apt.petName || 'Sin nombre'}
+                      <p className="font-semibold text-[#1C1C1C] truncate">
+                        🐕 {apt.pet_name || apt.petName || 'Sin nombre'}
                       </p>
-                      <p className="text-sm text-gray-500 truncate">
-                        {apt.owner_name || apt.ownerName || 'Sin cliente'} • {apt.service_name || (apt.additional_service ? 'Servicio adicional' : 'Baño y corte')}
+                      <p className="text-sm text-[#6B6B6B] truncate">
+                        👤 {apt.owner_name || apt.ownerName || 'Sin cliente'} • ✂️ {apt.service_name || (apt.additional_service ? 'Servicio adicional' : 'Baño y corte')}
                       </p>
                     </div>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(apt.status)}`}>
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                      apt.status === 'pendiente' ? 'bg-[#FEF3C7] text-[#B45309]' :
+                      apt.status === 'confirmada' ? 'bg-[#EEF4F0] text-[#4A7C59]' :
+                      apt.status === 'completada' ? 'bg-[#F3F4F6] text-[#6B7280]' :
+                      'bg-red-100 text-red-700'
+                    }`}>
                       {getStatusLabel(apt.status)}
                     </span>
                     <svg
@@ -587,7 +646,7 @@ export default function Dashboard() {
                                   recoveryTime: apt.recovery_time || apt.recoveryTime || 0,
                                 });
                               }}
-                              className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                              className="p-1 text-[#4A7C59] hover:bg-blue-50 rounded"
                               title="Editar servicio"
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -596,7 +655,7 @@ export default function Dashboard() {
                             </button>
                           </div>
                           {(apt.additional_service || apt.additionalService) && (
-                            <span className="inline-block mt-1 px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded-full">
+                            <span className="inline-block mt-1 px-2 py-0.5 bg-[#FCE4D6] text-purple-700 text-xs rounded-full">
                               Recuperación de manto
                             </span>
                           )}
@@ -652,7 +711,7 @@ export default function Dashboard() {
                           <>
                             <button
                               onClick={(e) => { e.stopPropagation(); updateStatus(apt.id, 'confirmada'); }}
-                              className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded-lg transition-colors"
+                              className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-[#4A7C59] hover:bg-[#3D6A4B] text-white text-sm rounded-lg transition-colors"
                             >
                               ✓ Confirmar
                             </button>
@@ -901,37 +960,37 @@ export default function Dashboard() {
         <div className="bg-white rounded-xl shadow-sm border p-4">
           {/* Fila 1 */}
           <div className="grid grid-cols-4 gap-3 mb-3">
-            <div className="p-3 bg-gray-50 rounded-lg">
+            <div className="p-3 bg-[#FAFAF8] rounded-lg">
               <p className="text-xs text-gray-500">Citas este mes</p>
               <p className="text-xl font-bold text-gray-900">{thisMonthTotal}</p>
               <p className={`text-xs ${growthPercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                 {growthPercent >= 0 ? '↑' : '↓'} {Math.abs(growthPercent)}%
               </p>
             </div>
-            <div className="p-3 bg-gray-50 rounded-lg">
+            <div className="p-3 bg-[#FAFAF8] rounded-lg">
               <p className="text-xs text-gray-500">Clientes nuevos</p>
-              <p className="text-xl font-bold text-blue-600">{newClientsThisMonth}</p>
+              <p className="text-xl font-bold text-[#4A7C59]">{newClientsThisMonth}</p>
             </div>
-            <div className="p-3 bg-gray-50 rounded-lg">
+            <div className="p-3 bg-[#FAFAF8] rounded-lg">
               <p className="text-xs text-gray-500">Recurrentes</p>
               <p className="text-xl font-bold text-green-600">{recurringClientsThisMonth}</p>
             </div>
-            <div className="p-3 bg-gray-50 rounded-lg">
+            <div className="p-3 bg-[#FAFAF8] rounded-lg">
               <p className="text-xs text-gray-500">Top servicio</p>
               <p className="text-sm font-bold text-purple-600">{topService}</p>
             </div>
           </div>
           {/* Fila 2 */}
           <div className="grid grid-cols-3 gap-3">
-            <div className="p-3 bg-gray-50 rounded-lg">
+            <div className="p-3 bg-[#FAFAF8] rounded-lg">
               <p className="text-xs text-gray-500">Dia mas citas</p>
               <p className="text-lg font-bold text-orange-600">{days[Number(maxDay[0])]}</p>
             </div>
-            <div className="p-3 bg-gray-50 rounded-lg">
+            <div className="p-3 bg-[#FAFAF8] rounded-lg">
               <p className="text-xs text-gray-500">Cancelacion</p>
               <p className="text-xl font-bold text-red-600">{cancelRate}%</p>
             </div>
-            <div className="p-3 bg-gray-50 rounded-lg">
+            <div className="p-3 bg-[#FAFAF8] rounded-lg">
               <p className="text-xs text-gray-500">Ingreso estimado</p>
               <p className="text-lg font-bold text-green-600">Q{estimatedIncome.toLocaleString()}</p>
             </div>
@@ -958,7 +1017,7 @@ export default function Dashboard() {
               ))}
             </div>
             {/* Una sola fila: promedio, meta, progreso */}
-            <div className="flex justify-between text-xs bg-gray-50 rounded-lg p-2">
+            <div className="flex justify-between text-xs bg-[#FAFAF8] rounded-lg p-2">
               <div className="text-center">
                 <p className="text-gray-400">Promedio</p>
                 <p className="font-bold">{avgPerDay}</p>
@@ -1021,7 +1080,7 @@ export default function Dashboard() {
             {monthlyData2026.map((m, i) => (
               <div key={i} className="flex-1 flex flex-col items-center">
                 <div
-                  className="w-full bg-blue-500 rounded-t"
+                  className="w-full bg-[#4A7C59] rounded-t"
                   style={{ height: `${Math.min((m.count / 50) * 100, 100)}%` }}
                 />
                 <span className="text-[8px] text-gray-400 mt-0.5">{m.month}</span>
@@ -1071,11 +1130,11 @@ export default function Dashboard() {
                     w-full p-3 rounded-lg text-left transition-all flex items-center gap-3
                     ${selectedClient === client.phone
                       ? 'bg-[#E8943D]/10 border border-[#E8943D]'
-                      : 'border border-transparent hover:bg-gray-50'}
+                      : 'border border-transparent hover:bg-[#FAFAF8]'}
                   `}
                 >
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-blue-600 font-bold">
+                  <div className="w-10 h-10 bg-[#E8F5E9] rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-[#4A7C59] font-bold">
                       {client.name.charAt(0).toUpperCase()}
                     </span>
                   </div>
@@ -1148,7 +1207,7 @@ export default function Dashboard() {
                 </div>
                 <div className="flex-1 overflow-y-auto">
                   <table className="w-full text-sm">
-                    <thead className="bg-gray-50 sticky top-0">
+                    <thead className="bg-[#FAFAF8] sticky top-0">
                       <tr>
                         <th className="text-left py-2 px-3 font-medium text-gray-500">Fecha</th>
                         <th className="text-left py-2 px-3 font-medium text-gray-500">Hora</th>
@@ -1162,7 +1221,7 @@ export default function Dashboard() {
                         .sort((a, b) => b.date.localeCompare(a.date) || b.time.localeCompare(b.time))
                         .slice(0, 20)
                         .map((apt) => (
-                          <tr key={apt.id} className="hover:bg-gray-50">
+                          <tr key={apt.id} className="hover:bg-[#FAFAF8]">
                             <td className="py-2 px-3">{format(new Date(apt.date), 'dd MMM yyyy')}</td>
                             <td className="py-2 px-3">{apt.time}</td>
                             <td className="py-2 px-3">{apt.pet_name || apt.petName || '-'}</td>
@@ -1239,7 +1298,7 @@ export default function Dashboard() {
                     w-full p-3 rounded-lg text-left transition-all flex items-center gap-3
                     ${selectedPet === pet.id
                       ? 'bg-[#E8943D]/10 border border-[#E8943D]'
-                      : 'border border-transparent hover:bg-gray-50'}
+                      : 'border border-transparent hover:bg-[#FAFAF8]'}
                   `}
                 >
                   <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0 text-xl">
@@ -1332,7 +1391,7 @@ export default function Dashboard() {
                 </div>
                 <div className="flex-1 overflow-y-auto">
                   <table className="w-full text-sm">
-                    <thead className="bg-gray-50 sticky top-0">
+                    <thead className="bg-[#FAFAF8] sticky top-0">
                       <tr>
                         <th className="text-left py-2 px-3 font-medium text-gray-500">Fecha</th>
                         <th className="text-left py-2 px-3 font-medium text-gray-500">Hora</th>
@@ -1345,7 +1404,7 @@ export default function Dashboard() {
                         .sort((a, b) => b.date.localeCompare(a.date) || b.time.localeCompare(b.time))
                         .slice(0, 15)
                         .map((apt) => (
-                          <tr key={apt.id} className="hover:bg-gray-50">
+                          <tr key={apt.id} className="hover:bg-[#FAFAF8]">
                             <td className="py-2 px-3">{format(new Date(apt.date), 'dd MMM yyyy')}</td>
                             <td className="py-2 px-3">{apt.time}</td>
                             <td className="py-2 px-3">
@@ -1389,7 +1448,7 @@ export default function Dashboard() {
       {/* Lista de servicios */}
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
         <table className="w-full">
-          <thead className="bg-gray-50">
+          <thead className="bg-[#FAFAF8]">
             <tr>
               <th className="text-left py-3 px-4 font-medium text-gray-500">Icono</th>
               <th className="text-left py-3 px-4 font-medium text-gray-500">Servicio</th>
@@ -1402,7 +1461,7 @@ export default function Dashboard() {
           </thead>
           <tbody className="divide-y">
             {services.map((service) => (
-              <tr key={service.id} className={`hover:bg-gray-50 ${!service.active ? 'bg-gray-50' : ''}`}>
+              <tr key={service.id} className={`hover:bg-[#FAFAF8] ${!service.active ? 'bg-[#FAFAF8]' : ''}`}>
                 <td className="py-3 px-4 text-2xl">{service.emoji}</td>
                 <td className="py-3 px-4 font-medium text-gray-900">{service.name}</td>
                 <td className="py-3 px-4 text-gray-500 text-sm">{service.description}</td>
@@ -1417,7 +1476,7 @@ export default function Dashboard() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => setServiceModal({ mode: 'edit', service })}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      className="p-2 text-[#4A7C59] hover:bg-blue-50 rounded-lg transition-colors"
                       title="Editar"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1473,7 +1532,7 @@ export default function Dashboard() {
                 { id: '6', label: 'Sab' },
                 { id: '0', label: 'Dom' },
               ].map((day) => (
-                <label key={day.id} className="flex items-center gap-2 px-3 py-2 border rounded-lg cursor-pointer hover:bg-gray-50">
+                <label key={day.id} className="flex items-center gap-2 px-3 py-2 border rounded-lg cursor-pointer hover:bg-[#FAFAF8]">
                   <input
                     type="checkbox"
                     checked={config.workDays.includes(day.id)}
@@ -1670,7 +1729,7 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#FAFAF8]">
       {/* Sidebar */}
       <Sidebar
         currentSection={currentView}
@@ -1708,34 +1767,74 @@ export default function Dashboard() {
           {currentView === 'inicio' && (
             <div className="space-y-6">
               {/* Fila superior: 4 cards de estado del día */}
-              <div className="grid grid-cols-4 gap-4">
-                <div className="bg-white rounded-xl shadow-sm border p-4">
-                  <p className="text-sm text-gray-500">Total hoy</p>
-                  <p className="text-3xl font-bold text-gray-900">{todayStats.total}</p>
+              <div className="flex gap-4">
+                {/* Total hoy */}
+                <div className="flex-1 bg-white rounded-[12px] p-4 shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[#94A3B8]/20 flex items-center justify-center text-lg">📊</div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-[0.08em] text-[#64748B]">Total</p>
+                      <p className="text-[32px] font-bold text-[#475569]">{todayStats.total}</p>
+                      <p className="text-xs text-[#94A3B8]">citas programadas hoy</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="bg-yellow-50 rounded-xl shadow-sm border border-yellow-200 p-4">
-                  <p className="text-sm text-yellow-700">Pendientes</p>
-                  <p className="text-3xl font-bold text-yellow-700">{todayStats.pendiente}</p>
+                {/* Pendientes */}
+                <div className="flex-1 bg-white rounded-[12px] p-4 shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[#FEF3C7] flex items-center justify-center text-lg">⏳</div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-[0.08em] text-[#D97706]">Pendientes</p>
+                      <p className="text-[32px] font-bold text-[#B45309]">{todayStats.pendiente}</p>
+                      <p className="text-xs text-[#D97706]/70">esperando confirmación</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="bg-blue-50 rounded-xl shadow-sm border border-blue-200 p-4">
-                  <p className="text-sm text-blue-700">Confirmadas</p>
-                  <p className="text-3xl font-bold text-blue-700">{todayStats.confirmada}</p>
+                {/* Confirmadas */}
+                <div className="flex-1 bg-white rounded-[12px] p-4 shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[#4A7C59]/15 flex items-center justify-center text-lg">✓</div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-[0.08em] text-[#4A7C59]">Confirmadas</p>
+                      <p className="text-[32px] font-bold text-[#4A7C59]">{todayStats.confirmada}</p>
+                      <p className="text-xs text-[#4A7C59]/70">citas confirmadas</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="bg-green-50 rounded-xl shadow-sm border border-green-200 p-4">
-                  <p className="text-sm text-green-700">Completadas</p>
-                  <p className="text-3xl font-bold text-green-700">{todayStats.completada}</p>
+                {/* Completadas */}
+                <div className="flex-1 bg-white rounded-[12px] p-4 shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[#C97B5A]/15 flex items-center justify-center text-lg">✅</div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-[0.08em] text-[#C97B5A]">Completadas</p>
+                      <p className="text-[32px] font-bold text-[#C97B5A]">{todayStats.completada}</p>
+                      <p className="text-xs text-[#C97B5A]/70">servicios realizados</p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
               {/* Fila del medio: 2 columnas */}
               <div className="grid grid-cols-5 gap-6">
                 {/* Columna izquierda: Agenda de hoy (60%) */}
-                <div className="col-span-3 bg-white rounded-xl shadow-sm border p-4">
+                <div className="col-span-3 bg-white rounded-xl shadow-sm border p-5">
                   <h3 className="text-lg font-semibold text-gray-800 mb-4">Agenda de hoy</h3>
                   {todayAppointments.length === 0 ? (
-                    <p className="text-gray-500 text-center py-8">No hay citas programadas para hoy</p>
+                    <div className="flex flex-col items-center justify-center py-10">
+                      <div className="w-20 h-20 rounded-full bg-[#F5F3EE] flex items-center justify-center text-4xl mb-4">
+                        🐾
+                      </div>
+                      <p className="text-lg font-medium text-[#4A4A4A] mb-1">Sin citas para hoy</p>
+                      <p className="text-sm text-[#6B6B6B] mb-4">¡El día está libre!</p>
+                      <button
+                        onClick={() => setCurrentView('agenda')}
+                        className="px-4 py-2 text-sm border border-[#4A7C59] text-[#4A7C59] rounded-lg hover:bg-[#4A7C59] hover:text-white transition-colors"
+                      >
+                        + Agendar cita
+                      </button>
+                    </div>
                   ) : (
-                    <div className="space-y-2 max-h-80 overflow-y-auto">
+                    <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
                       {todayAppointments
                         .sort((a, b) => {
                           const [ah, am] = a.time.split(':').map(Number);
@@ -1744,28 +1843,39 @@ export default function Dashboard() {
                         })
                         .slice(0, 6)
                         .map((apt) => (
-                          <div key={apt.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                            <div className="w-16 text-sm font-medium text-gray-600">
-                              {apt.time}
+                          <div
+                            key={apt.id}
+                            className="flex items-center gap-3 p-3 bg-white rounded-lg border border-[#E8E4DC] hover:shadow-md transition-shadow relative overflow-hidden"
+                          >
+                            {/* Franja de color según estado */}
+                            <div className={`absolute left-0 top-0 bottom-0 w-[4px] ${
+                              apt.status === 'pendiente' ? 'bg-[#F59E0B]' :
+                              apt.status === 'confirmada' ? 'bg-[#4A7C59]' :
+                              apt.status === 'completada' ? 'bg-[#9CA3AF]' :
+                              'bg-[#EF4444]'
+                            }`} />
+                            <div className="w-14 pl-3">
+                              <p className="text-base font-bold text-[#1C1C1C]">{apt.time}</p>
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-gray-900 truncate">
-                                {apt.petName} {apt.petBreed ? `(${apt.petBreed})` : ''}
+                            <div className="flex-1 min-w-0 pl-2">
+                              <p className="font-semibold text-[#1C1C1C] truncate">
+                                🐕 {apt.petName} {apt.petBreed ? `(${apt.petBreed})` : ''}
                               </p>
-                              <p className="text-sm text-gray-500 truncate">{apt.ownerName}</p>
+                              <p className="text-sm text-[#6B6B6B] truncate">👤 {apt.ownerName}</p>
                             </div>
-                            <div className="text-sm text-gray-500 whitespace-nowrap">
+                            <div className="text-sm text-[#4A4A4A] whitespace-nowrap flex items-center gap-1">
+                              <span>✂️</span>
                               {apt.serviceName || 'Servicio'}
                             </div>
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              apt.status === 'pendiente' ? 'bg-yellow-100 text-yellow-800' :
-                              apt.status === 'confirmada' ? 'bg-blue-100 text-blue-800' :
-                              apt.status === 'completada' ? 'bg-green-100 text-green-800' :
-                              'bg-red-100 text-red-800'
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
+                              apt.status === 'pendiente' ? 'bg-[#FEF3C7] text-[#B45309]' :
+                              apt.status === 'confirmada' ? 'bg-[#EEF4F0] text-[#4A7C59]' :
+                              apt.status === 'completada' ? 'bg-[#F3F4F6] text-[#6B7280]' :
+                              'bg-red-100 text-red-700'
                             }`}>
-                              {apt.status === 'pendiente' ? 'Pendiente' :
-                               apt.status === 'confirmada' ? 'Confirmada' :
-                               apt.status === 'completada' ? 'Completada' : 'Cancelada'}
+                              {apt.status === 'pendiente' ? '⏳ Pendiente' :
+                               apt.status === 'confirmada' ? '✓ Confirmada' :
+                               apt.status === 'completada' ? '✓ Completada' : '✕ Cancelada'}
                             </span>
                           </div>
                         ))}
@@ -1776,36 +1886,25 @@ export default function Dashboard() {
                 {/* Columna derecha: Resumen rápido (40%) */}
                 <div className="col-span-2 space-y-4">
                   {/* Próxima cita */}
-                  <div className="bg-white rounded-xl shadow-sm border p-4">
-                    <h3 className="text-sm font-medium text-gray-500 mb-2">Próxima cita</h3>
+                  <div className="bg-white rounded-[12px] shadow-[0_2px_8px_rgba(0,0,0,0.06)] p-5">
+                    <p className="text-[10px] uppercase tracking-[0.08em] text-[#6B6B6B] mb-2">Próxima cita</p>
                     {nextAppointment ? (
-                      <div>
-                        <p className="text-2xl font-bold text-[#E8943D]">
-                          {getTimeRemaining()}
-                        </p>
-                        <p className="text-gray-700 font-medium mt-1">
-                          {nextAppointment.petName} {nextAppointment.petBreed ? `(${nextAppointment.petBreed})` : ''}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {nextAppointment.time} - {nextAppointment.serviceName || 'Servicio'}
-                        </p>
-                      </div>
+                      <p className="text-[28px] font-bold text-[#E8943D]">{getTimeRemaining()}</p>
                     ) : (
-                      <p className="text-gray-500">No hay más citas hoy</p>
+                      <p className="text-[28px] font-bold text-[#1C1C1C]">—</p>
                     )}
                   </div>
 
                   {/* Citas de mañana */}
-                  <div className="bg-white rounded-xl shadow-sm border p-4">
-                    <h3 className="text-sm font-medium text-gray-500 mb-1">Citas de mañana</h3>
-                    <p className="text-3xl font-bold text-gray-900">{tomorrowAppointments.length}</p>
+                  <div className="bg-white rounded-[12px] shadow-[0_2px_8px_rgba(0,0,0,0.06)] p-5">
+                    <p className="text-[10px] uppercase tracking-[0.08em] text-[#6B6B6B] mb-2">Citas de mañana</p>
+                    <p className="text-[28px] font-bold text-[#1C1C1C]">{tomorrowAppointments.length}</p>
                   </div>
 
                   {/* Clientes nuevos esta semana */}
-                  <div className="bg-white rounded-xl shadow-sm border p-4">
-                    <h3 className="text-sm font-medium text-gray-500 mb-1">Clientes nuevos</h3>
-                    <p className="text-3xl font-bold text-gray-900">esta semana</p>
-                    <p className="text-2xl font-bold text-gray-900">{uniqueClientsThisWeek}</p>
+                  <div className="bg-white rounded-[12px] shadow-[0_2px_8px_rgba(0,0,0,0.06)] p-5">
+                    <p className="text-[10px] uppercase tracking-[0.08em] text-[#6B6B6B] mb-2">Clientes nuevos · Esta semana</p>
+                    <p className="text-[28px] font-bold text-[#1C1C1C]">{uniqueClientsThisWeek}</p>
                   </div>
                 </div>
               </div>
@@ -1901,7 +2000,7 @@ export default function Dashboard() {
                   <h4 className="text-sm font-semibold text-gray-700 mb-3">Servicio principal</h4>
                   <div className="space-y-2">
                     {services.filter(s => s.active && !s.isAdditional).map(service => (
-                      <label key={service.id} className="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                      <label key={service.id} className="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-[#FAFAF8]">
                         <div className="flex items-center gap-3">
                           <input type="radio" name="serviceId" value={service.id} defaultChecked={services.filter(s => s.active && !s.isAdditional)[0]?.id === service.id} required className="text-[#E8943D]" />
                           <div>
@@ -1951,7 +2050,7 @@ export default function Dashboard() {
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">WhatsApp</label>
                       <div className="flex">
-                        <span className="inline-flex items-center px-3 py-2 border border-r-0 rounded-l-lg bg-gray-50 text-sm text-gray-500">+502</span>
+                        <span className="inline-flex items-center px-3 py-2 border border-r-0 rounded-l-lg bg-[#FAFAF8] text-sm text-gray-500">+502</span>
                         <input name="whatsapp" required type="tel" pattern="[0-9]{8}" maxLength={8} className="flex-1 px-3 py-2 border rounded-r-lg focus:outline-none focus:ring-2 focus:ring-[#E8943D] text-sm" placeholder="12345678" />
                       </div>
                     </div>
@@ -1964,7 +2063,7 @@ export default function Dashboard() {
                 </div>
 
                 <div className="flex gap-3 pt-2">
-                  <button type="button" onClick={() => setNewAppointmentModal(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">Cancelar</button>
+                  <button type="button" onClick={() => setNewAppointmentModal(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-[#FAFAF8] transition-colors">Cancelar</button>
                   <button type="submit" className="flex-1 px-4 py-2 bg-[#E8943D] hover:bg-[#E8943D]/90 text-white rounded-lg transition-colors">Crear Cita</button>
                 </div>
               </form>
@@ -2038,7 +2137,7 @@ export default function Dashboard() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Servicio</label>
                   <div className="space-y-2">
                     {services.filter(s => s.active).map(service => (
-                      <label key={service.id} className="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                      <label key={service.id} className="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-[#FAFAF8]">
                         <div className="flex items-center gap-3">
                           <input
                             type="radio"
@@ -2087,7 +2186,7 @@ export default function Dashboard() {
                   />
                 </div>
 
-                <div className="p-3 bg-gray-50 rounded-lg">
+                <div className="p-3 bg-[#FAFAF8] rounded-lg">
                   <p className="text-sm text-gray-600">
                     <span className="font-medium">Duración estimada total:</span> {totalDuration} minutos
                   </p>
@@ -2102,7 +2201,7 @@ export default function Dashboard() {
                 )}
 
                 <div className="flex gap-3 pt-2">
-                  <button type="button" onClick={() => setEditServiceModal(null)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">Cancelar</button>
+                  <button type="button" onClick={() => setEditServiceModal(null)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-[#FAFAF8] transition-colors">Cancelar</button>
                   <button type="submit" className="flex-1 px-4 py-2 bg-[#E8943D] hover:bg-[#E8943D]/90 text-white rounded-lg transition-colors">Guardar</button>
                 </div>
               </form>
@@ -2135,7 +2234,7 @@ export default function Dashboard() {
                   setCustomMessageModal(null);
                   setCustomMessage('');
                 }}
-                className="flex-1 px-4 py-2 border text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex-1 px-4 py-2 border text-gray-700 rounded-lg hover:bg-[#FAFAF8] transition-colors"
               >
                 Cancelar
               </button>
@@ -2161,7 +2260,7 @@ function StatCard({ label, value, color }: { label: string; value: number; color
   const colors: Record<string, string> = {
     gray: 'bg-gray-100 text-gray-800',
     yellow: 'bg-yellow-100 text-yellow-800',
-    blue: 'bg-blue-100 text-blue-800',
+    blue: 'bg-[#E8F5E9] text-blue-800',
     green: 'bg-green-100 text-green-800',
   };
 

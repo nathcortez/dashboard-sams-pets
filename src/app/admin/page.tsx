@@ -135,7 +135,7 @@ export default function AdminPage() {
               <span className="text-white text-lg">🐕</span>
             </div>
             <div>
-              <h1 className="font-bold text-[--azul-oscuro]">Gestión de Citas</h1>
+              <h1 className="text-[22px] font-semibold text-[#1C1C1C]">Gestión de Citas</h1>
               <p className="text-xs text-[--gris]">Sam's Pets</p>
             </div>
           </div>
@@ -157,7 +157,7 @@ export default function AdminPage() {
           <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-xl text-sm text-yellow-700">⚠️ {error}</div>
         )}
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-6 mb-6">
           <StatsCard title="Total" value={stats.total} icon="📊" color="blue" />
           <StatsCard title="Pendientes" value={stats.pending} icon="⏳" color="yellow" />
           <StatsCard title="Confirmadas" value={stats.confirmed} icon="✓" color="blue" />
@@ -165,7 +165,7 @@ export default function AdminPage() {
           <StatsCard title="Canceladas" value={stats.cancelled} icon="❌" color="red" />
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between mb-6">
+        <div className="flex flex-col sm:flex-row gap-6 sm:items-center sm:justify-between mb-6">
           <div className="flex bg-white rounded-full p-1 shadow-sm">
             <button
               onClick={() => setViewMode('list')}

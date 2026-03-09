@@ -51,11 +51,11 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-indigo-100">
-      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-[#F5F3EE]">
+      <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md border border-[#E5E3DE]">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Sam&apos;s Pets</h1>
-          <p className="text-gray-500">Panel de Administracion</p>
+          <h1 className="text-3xl font-bold text-[#1C1C1C] mb-2">Sam&apos;s Pets</h1>
+          <p className="text-[#6B6B6B]">Panel de Administración</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -66,7 +66,7 @@ export default function LoginPage() {
           )}
 
           <div>
-            <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="username" className="block text-sm font-medium text-[#1C1C1C] mb-2">
               Usuario
             </label>
             <input
@@ -74,7 +74,7 @@ export default function LoginPage() {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+              className="w-full px-4 py-3 border border-[#E5E3DE] rounded-lg focus:ring-2 focus:ring-[#4A7C59] focus:border-transparent transition bg-white text-[#1C1C1C]"
               placeholder="Ingresa tu usuario"
               required
               disabled={loading}
@@ -82,16 +82,16 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-              Contrasena
+            <label htmlFor="password" className="block text-sm font-medium text-[#1C1C1C] mb-2">
+              Contraseña
             </label>
             <input
               id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
-              placeholder="Ingresa tu contrasena"
+              className="w-full px-4 py-3 border border-[#E5E3DE] rounded-lg focus:ring-2 focus:ring-[#4A7C59] focus:border-transparent transition bg-white text-[#1C1C1C]"
+              placeholder="Ingresa tu contraseña"
               required
               disabled={loading}
             />
@@ -100,9 +100,9 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-4 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-[#4A7C59] hover:bg-[#3D6A4B] text-white font-semibold py-3 px-4 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? 'Ingresando...' : 'Iniciar Sesion'}
+            {loading ? 'Ingresando...' : 'Iniciar Sesión'}
           </button>
         </form>
       </div>

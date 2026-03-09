@@ -28,7 +28,7 @@ const statusLabels: Record<AppointmentStatus, string> = {
 
 export default function DayView({ appointments, onCancel, onReschedule, onStatusChange }: DayViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   const days = useMemo(() => {
     const start = startOfMonth(currentDate);
@@ -68,64 +68,79 @@ export default function DayView({ appointments, onCancel, onReschedule, onStatus
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="bg-white rounded-[16px] shadow-[0_2px_8px_rgba(0,0,0,0.06)] p-5">
+      {/* Cabecera del mes */}
+      <div className="flex items-center justify-between mb-5">
         <button
           onClick={() => setCurrentDate(subMonths(currentDate, 1))}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-[#F5F3EE] transition-colors text-[#4A4A4A]"
         >
           ←
         </button>
-        <h3 className="font-semibold text-[--azul-oscuro]">
-          {format(currentDate, "MMMM yyyy", { locale: es })}
+        <h3 className="text-[18px] font-bold text-[#1C1C1C]">
+          {format(currentDate, "MMMM yyyy", { locale: es }).charAt(0).toUpperCase() + format(currentDate, "MMMM yyyy", { locale: es }).slice(1)}
         </h3>
         <button
           onClick={() => setCurrentDate(addMonths(currentDate, 1))}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-[#F5F3EE] transition-colors text-[#4A4A4A]"
         >
           →
         </button>
       </div>
 
-      <div className="grid grid-cols-7 gap-1">
-        {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map((day) => (
-          <div key={day} className="text-center text-xs font-medium text-gray-500 py-2">
+      {/* Días de la semana */}
+      <div className="grid grid-cols-7 gap-1 mb-2">
+        {['D', 'L', 'M', 'X', 'J', 'V', 'S'].map((day) => (
+          <div key={day} className="text-center text-[11px] font-medium uppercase tracking-wider text-[#9E9E9E] py-2">
             {day}
           </div>
         ))}
+      </div>
+
+      {/* Días del mes */}
+      <div className="grid grid-cols-7 gap-1">
         {days.map((day) => {
           const dateStr = format(day, 'yyyy-MM-dd');
           const hasAppointments = appointmentsByDate[dateStr]?.length > 0;
           const isSelected = selectedDate && isSameDay(day, selectedDate);
+          const dayOfWeek = day.getDay();
+          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
           return (
             <button
               key={dateStr}
               onClick={() => setSelectedDate(day)}
               className={`
-                aspect-square p-1 text-sm rounded-lg transition-colors relative
-                ${isSelected ? 'bg-[--azul-principal] text-white' : 'hover:bg-gray-100'}
-                ${isToday(day) && !isSelected ? 'ring-2 ring-[--naranja] ring-inset' : ''}
+                aspect-square p-1 text-sm rounded-[8px] transition-colors relative flex flex-col items-center justify-center
+                ${isWeekend ? 'bg-[#FAF8F5]' : ''}
+                ${isSelected ? 'bg-[#4A7C59] text-white' : 'hover:bg-[#F5F3EE]'}
+                ${isToday(day) && !isSelected ? 'ring-2 ring-[#4A7C59] ring-inset' : ''}
               `}
             >
-              {format(day, 'd')}
+              <span className={isSelected ? 'text-white' : isToday(day) ? 'text-[#4A7C59] font-bold' : 'text-[#1C1C1C]'}>
+                {format(day, 'd')}
+              </span>
               {hasAppointments && (
-                <span className={`absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-[--naranja]'}`} />
+                <span className={`absolute bottom-1 w-[6px] h-[6px] rounded-full ${isSelected ? 'bg-white' : 'bg-[#C97B5A]'}`} />
               )}
             </button>
           );
         })}
       </div>
 
-      <div className="mt-6">
-        <h4 className="font-semibold text-[--azul-oscuro] mb-3">
+      {/* Panel de citas del día seleccionado */}
+      <div className="mt-6 pt-5 border-t border-[#E8E4DC]">
+        <h4 className="text-[16px] font-semibold text-[#1C1C1C] mb-4">
           {selectedDate ? formatDateHeader(selectedDate) : 'Selecciona un día'}
         </h4>
 
         {selectedDayAppointments.length === 0 ? (
-          <div className="bg-white rounded-2xl p-6 text-center">
-            <div className="text-3xl mb-2">📅</div>
-            <p className="text-gray-500 text-sm">No hay citas programadas</p>
+          <div className="bg-[#FAF8F5] rounded-[12px] p-8 text-center">
+            <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center text-2xl mb-3 mx-auto shadow-sm">
+              📅
+            </div>
+            <p className="text-[#4A4A4A] font-medium mb-1">No hay citas programadas</p>
+            <p className="text-[#9E9E9E] text-sm">Selecciona otro día o agenda una nueva</p>
           </div>
         ) : (
           <div className="space-y-3">

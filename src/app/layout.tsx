@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import AuthProvider from "@/components/AuthProvider";
 
-const inter = Inter({ subsets: ["latin"] });
+const plusJakartaSans = Plus_Jakarta_Sans({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Sam's Pets - Dashboard",
@@ -17,7 +17,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <body className={`${inter.className} bg-gray-50`}>
+      <body className={`${plusJakartaSans.className} bg-[#F5F3EE]`}>
         <AuthProvider>
           {children}
         </AuthProvider>
