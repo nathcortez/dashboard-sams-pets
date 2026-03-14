@@ -1,6 +1,7 @@
 'use client';
 
 import { Appointment, AppointmentStatus } from '@/types/appointment';
+import { generateWhatsAppReminder } from '@/lib/whatsapp';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -65,11 +66,22 @@ export default function AppointmentList({ appointments, onStatusChange, onCancel
           className={`bg-white rounded-2xl p-4 shadow-md ${appointment.status === 'cancelada' ? 'opacity-60' : ''}`}
         >
           <div className="flex justify-between items-start mb-3">
-            <div>
-              <h4 className={`font-semibold text-[--azul-oscuro] ${appointment.status === 'cancelada' ? 'line-through text-gray-400' : ''}`}>
-                {appointment.petName}
-              </h4>
-              <p className="text-sm text-[--gris]">{appointment.petBreedAge}</p>
+            <div className="flex items-center gap-3">
+              {appointment.petPhoto && (
+                <img src={appointment.petPhoto} alt={appointment.petName || ''} className="w-10 h-10 rounded-full object-cover" />
+              )}
+              <div>
+                <h4 className={`font-semibold text-[--azul-oscuro] ${appointment.status === 'cancelada' ? 'line-through text-gray-400' : ''}`}>
+                  {appointment.petName}
+                </h4>
+                {appointment.petBreedEmoji && appointment.petBreed && (
+                  <p className="text-sm text-[--gris]">{appointment.petBreedEmoji} {appointment.petBreed}</p>
+                )}
+                {appointment.serviceName && (
+                  <p className="text-sm text-[--gris]">✂️ {appointment.serviceName}</p>
+                )}
+                <p className="text-sm text-[--gris]">{appointment.petBreedAge}</p>
+              </div>
             </div>
             <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[appointment.status]}`}>
               {statusLabels[appointment.status]}
@@ -124,6 +136,12 @@ export default function AppointmentList({ appointments, onStatusChange, onCancel
                 className="flex-1 py-2 px-3 bg-red-100 hover:bg-red-200 text-red-700 text-sm font-medium rounded-lg transition-colors"
               >
                 Cancelar
+              </button>
+              <button
+                onClick={() => window.open(generateWhatsAppReminder(appointment), '_blank')}
+                className="flex-1 py-2 px-3 bg-green-50 hover:bg-green-100 text-green-700 text-sm font-medium rounded-lg transition-colors"
+              >
+                📱 Recordatorio
               </button>
             </div>
           )}

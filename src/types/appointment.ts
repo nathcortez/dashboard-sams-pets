@@ -31,6 +31,8 @@ export interface Appointment {
   service_additional_time?: number;
   recoveryTime?: number;
   recovery_time?: number;
+  petPhoto?: string;
+  pet_photo_url?: string;
   ownerName?: string;
   owner_name?: string;
   whatsapp?: string;

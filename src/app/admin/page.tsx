@@ -6,10 +6,11 @@ import { supabase } from '@/lib/supabase';
 import StatsCard from '@/components/admin/StatsCard';
 import AppointmentList from '@/components/admin/AppointmentList';
 import DayView from '@/components/admin/DayView';
+import TodayView from '@/components/admin/TodayView';
 import NewAppointmentModal from '@/components/admin/NewAppointmentModal';
 import RescheduleModal from '@/components/admin/RescheduleModal';
 
-type ViewMode = 'list' | 'calendar';
+type ViewMode = 'list' | 'calendar' | 'today';
 
 export default function AdminPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -18,6 +19,7 @@ export default function AdminPage() {
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
 
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showNewAppointment, setShowNewAppointment] = useState(false);
   const [rescheduleAppointment, setRescheduleAppointment] = useState<Appointment | null>(null);
 
@@ -37,6 +39,13 @@ export default function AdminPage() {
         createdAt: row.created_at,
         petName: row.pet_name,
         petBreedAge: row.pet_breed_age,
+        petBreed: row.pet_breed,
+        petBreedEmoji: row.pet_breed_emoji,
+        petSize: row.pet_size,
+        serviceName: row.service_name,
+        serviceAdditionalTime: row.service_additional_time,
+        recoveryTime: row.recovery_time,
+        petPhoto: row.pet_photo_url,
         ownerName: row.owner_name,
         whatsapp: row.whatsapp,
         comments: row.comments,
@@ -64,6 +73,19 @@ export default function AdminPage() {
 
   useEffect(() => {
     fetchAppointments();
+  }, []);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('appointments-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments' }, () => {
+        fetchAppointments();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const handleStatusChange = async (id: string, status: AppointmentStatus) => {
@@ -174,6 +196,12 @@ export default function AdminPage() {
               📋 Lista
             </button>
             <button
+              onClick={() => setViewMode('today')}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${viewMode === 'today' ? 'bg-[--azul-principal] text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+            >
+              🐕 Hoy
+            </button>
+            <button
               onClick={() => setViewMode('calendar')}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${viewMode === 'calendar' ? 'bg-[--azul-principal] text-white' : 'text-gray-600 hover:bg-gray-100'}`}
             >
@@ -196,6 +224,13 @@ export default function AdminPage() {
 
         {viewMode === 'list' ? (
           <AppointmentList
+            appointments={filteredAppointments}
+            onStatusChange={handleStatusChange}
+            onCancel={handleCancel}
+            onReschedule={handleReschedule}
+          />
+        ) : viewMode === 'today' ? (
+          <TodayView
             appointments={filteredAppointments}
             onStatusChange={handleStatusChange}
             onCancel={handleCancel}
