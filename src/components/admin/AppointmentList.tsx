@@ -147,14 +147,15 @@ export default function AppointmentList({ appointments, onStatusChange, onCancel
 
                 {/* Action buttons */}
                 {appointment.status !== 'cancelada' && appointment.status !== 'completada' && (
-                  <div className="flex gap-2 flex-wrap mt-3">
+                  <div className="mt-3 space-y-2">
+                    {/* Primary action — full width */}
                     {appointment.status === 'pendiente' && (
                       <button
                         onClick={() => onStatusChange(appointment.id, 'confirmada')}
-                        className="py-1.5 px-3 text-white text-xs font-semibold rounded-xl transition-colors"
-                        style={{ backgroundColor: '#E8943D' }}
-                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#D4832F')}
-                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#E8943D')}
+                        className="w-full py-2 px-3 text-white text-xs font-semibold rounded-xl transition-colors"
+                        style={{ backgroundColor: '#2563EB' }}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#1D4ED8')}
+                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#2563EB')}
                       >
                         ✓ Confirmar
                       </button>
@@ -162,7 +163,7 @@ export default function AppointmentList({ appointments, onStatusChange, onCancel
                     {appointment.status === 'confirmada' && (
                       <button
                         onClick={() => onStatusChange(appointment.id, 'completada')}
-                        className="py-1.5 px-3 text-white text-xs font-semibold rounded-xl transition-colors"
+                        className="w-full py-2 px-3 text-white text-xs font-semibold rounded-xl transition-colors"
                         style={{ backgroundColor: '#4A7C59' }}
                         onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#3D6A4B')}
                         onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#4A7C59')}
@@ -170,29 +171,38 @@ export default function AppointmentList({ appointments, onStatusChange, onCancel
                         ✅ Completar
                       </button>
                     )}
-                    {onReschedule && (
+                    {/* Secondary actions — 3 in a row */}
+                    <div className="grid grid-cols-3 gap-2">
+                      {onReschedule && (
+                        <button
+                          onClick={() => onReschedule(appointment)}
+                          className="py-1.5 px-2 text-xs font-medium rounded-xl transition-colors text-center"
+                          style={{ backgroundColor: '#F3F4F6', color: '#6B6B6B' }}
+                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#E5E7EB')}
+                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#F3F4F6')}
+                        >
+                          📅 Re-agendar
+                        </button>
+                      )}
                       <button
-                        onClick={() => onReschedule(appointment)}
-                        className="py-1.5 px-3 text-xs font-medium rounded-xl transition-colors"
-                        style={{ backgroundColor: '#FFF4EA', color: '#E8943D' }}
+                        onClick={() => handleCancel(appointment.id)}
+                        className="py-1.5 px-2 text-xs font-medium rounded-xl transition-colors text-center"
+                        style={{ backgroundColor: '#FEF2F2', color: '#DC2626' }}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#FEE2E2')}
+                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FEF2F2')}
                       >
-                        📅 Re-agendar
+                        ❌ Cancelar
                       </button>
-                    )}
-                    <button
-                      onClick={() => handleCancel(appointment.id)}
-                      className="py-1.5 px-3 text-xs font-medium rounded-xl transition-colors"
-                      style={{ backgroundColor: '#FEF2F2', color: '#EF4444' }}
-                    >
-                      ❌ Cancelar
-                    </button>
-                    <button
-                      onClick={() => window.open(generateWhatsAppReminder(appointment), '_blank')}
-                      className="py-1.5 px-3 text-xs font-medium rounded-xl transition-colors"
-                      style={{ backgroundColor: '#E8F5E9', color: '#4A7C59' }}
-                    >
-                      📱 Recordatorio
-                    </button>
+                      <button
+                        onClick={() => window.open(generateWhatsAppReminder(appointment), '_blank')}
+                        className="py-1.5 px-2 text-xs font-medium rounded-xl transition-colors text-center"
+                        style={{ backgroundColor: '#F0FDF4', color: '#15803D' }}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#DCFCE7')}
+                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#F0FDF4')}
+                      >
+                        📱 WhatsApp
+                      </button>
+                    </div>
                   </div>
                 )}
 

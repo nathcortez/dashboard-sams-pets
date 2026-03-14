@@ -192,12 +192,12 @@ export default function TodayView({ appointments, onStatusChange, onCancel, onRe
 
                     {/* Action buttons */}
                     {appointment.status !== 'cancelada' && appointment.status !== 'completada' && (
-                      <div className="flex flex-wrap gap-2">
-                        {/* Primary action */}
+                      <div className="space-y-2">
+                        {/* Primary action — full width */}
                         {appointment.status === 'pendiente' && (
                           <button
                             onClick={() => onStatusChange(appointment.id, 'confirmada')}
-                            className="flex-1 py-2.5 px-4 text-white text-sm font-semibold rounded-xl transition-colors"
+                            className="w-full py-2.5 px-4 text-white text-sm font-semibold rounded-xl transition-colors"
                             style={{ backgroundColor: '#2563EB' }}
                             onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#1D4ED8')}
                             onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#2563EB')}
@@ -208,7 +208,7 @@ export default function TodayView({ appointments, onStatusChange, onCancel, onRe
                         {appointment.status === 'confirmada' && (
                           <button
                             onClick={() => onStatusChange(appointment.id, 'completada')}
-                            className="flex-1 py-2.5 px-4 text-white text-sm font-semibold rounded-xl transition-colors"
+                            className="w-full py-2.5 px-4 text-white text-sm font-semibold rounded-xl transition-colors"
                             style={{ backgroundColor: '#4A7C59' }}
                             onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#3D6A4B')}
                             onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#4A7C59')}
@@ -217,34 +217,36 @@ export default function TodayView({ appointments, onStatusChange, onCancel, onRe
                           </button>
                         )}
 
-                        {/* Secondary actions */}
-                        <button
-                          onClick={() => onReschedule(appointment)}
-                          className="py-2 px-3 text-xs font-medium rounded-xl transition-colors"
-                          style={{ backgroundColor: '#FFF4EA', color: '#E8943D' }}
-                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#FFECD4')}
-                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FFF4EA')}
-                        >
-                          📅 Re-agendar
-                        </button>
-                        <button
-                          onClick={() => onCancel(appointment.id)}
-                          className="py-2 px-3 text-xs font-medium rounded-xl transition-colors"
-                          style={{ backgroundColor: '#FEF2F2', color: '#EF4444' }}
-                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#FEE2E2')}
-                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FEF2F2')}
-                        >
-                          ❌ Cancelar
-                        </button>
-                        <button
-                          onClick={() => window.open(generateWhatsAppReminder(appointment), '_blank')}
-                          className="py-2 px-3 text-xs font-medium rounded-xl transition-colors"
-                          style={{ backgroundColor: '#E8F5E9', color: '#4A7C59' }}
-                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#C8E6C9')}
-                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#E8F5E9')}
-                        >
-                          📱 Recordatorio
-                        </button>
+                        {/* Secondary actions — 3 in a row */}
+                        <div className="grid grid-cols-3 gap-2">
+                          <button
+                            onClick={() => onReschedule(appointment)}
+                            className="py-2 px-2 text-xs font-medium rounded-xl transition-colors text-center"
+                            style={{ backgroundColor: '#F3F4F6', color: '#6B6B6B' }}
+                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#E5E7EB')}
+                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#F3F4F6')}
+                          >
+                            📅 Re-agendar
+                          </button>
+                          <button
+                            onClick={() => onCancel(appointment.id)}
+                            className="py-2 px-2 text-xs font-medium rounded-xl transition-colors text-center"
+                            style={{ backgroundColor: '#FEF2F2', color: '#DC2626' }}
+                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#FEE2E2')}
+                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FEF2F2')}
+                          >
+                            ❌ Cancelar
+                          </button>
+                          <button
+                            onClick={() => window.open(generateWhatsAppReminder(appointment), '_blank')}
+                            className="py-2 px-2 text-xs font-medium rounded-xl transition-colors text-center"
+                            style={{ backgroundColor: '#F0FDF4', color: '#15803D' }}
+                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#DCFCE7')}
+                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#F0FDF4')}
+                          >
+                            📱 WhatsApp
+                          </button>
+                        </div>
                       </div>
                     )}
 

@@ -8,10 +8,11 @@ import DayView from '@/components/admin/DayView';
 import TodayView from '@/components/admin/TodayView';
 import NewAppointmentModal from '@/components/admin/NewAppointmentModal';
 import RescheduleModal from '@/components/admin/RescheduleModal';
+import RemindersView from '@/components/admin/RemindersView';
 import { format, isToday, parseISO, isAfter, isBefore, addDays, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-type ViewMode = 'today' | 'upcoming' | 'calendar' | 'all';
+type ViewMode = 'today' | 'upcoming' | 'calendar' | 'all' | 'reminders';
 
 export default function AdminPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -226,6 +227,7 @@ export default function AdminPage() {
     { key: 'upcoming', label: 'Próximas', emoji: '📅' },
     { key: 'calendar', label: 'Calendario', emoji: '🗓️' },
     { key: 'all', label: 'Historial', emoji: '📋' },
+    { key: 'reminders', label: 'Recordatorios', emoji: '🔔' },
   ];
 
   if (loading) {
@@ -374,6 +376,10 @@ export default function AdminPage() {
               onStatusChange={handleStatusChange}
             />
           </div>
+        )}
+
+        {viewMode === 'reminders' && (
+          <RemindersView />
         )}
 
         {viewMode === 'all' && (
