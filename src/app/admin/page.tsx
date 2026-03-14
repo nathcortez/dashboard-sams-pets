@@ -77,12 +77,42 @@ export default function AdminPage() {
     fetchAppointments();
   }, []);
 
+  // Pedir permiso de notificaciones al cargar
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+    }
+  }, []);
+
+  // Realtime: actualizar lista y notificar cuando llega cita nueva
   useEffect(() => {
     const channel = supabase
       .channel('appointments-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments' }, () => {
-        fetchAppointments();
-      })
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'appointments' },
+        (payload) => {
+          fetchAppointments();
+
+          // Notificación solo en INSERT (cita nueva)
+          if (payload.eventType === 'INSERT' && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+            const apt = payload.new as any;
+            const petName = apt.pet_name || 'Mascota';
+            const ownerName = apt.owner_name || '';
+            const date = apt.date || '';
+            const time = apt.time || '';
+
+            new Notification('🐾 Nueva cita — Sam\'s Pets', {
+              body: `${petName} (${ownerName})\n📅 ${date} · ⏰ ${time}`,
+              icon: '/logo-samspets.png',
+              badge: '/logo-samspets.png',
+              tag: apt.id,
+            });
+          }
+        }
+      )
       .subscribe();
 
     return () => {
