@@ -26,7 +26,7 @@ export default function LoginPage() {
     }
   }, [mounted, router]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (loading) return;
@@ -34,13 +34,12 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
 
-    const result = login(username, password);
+    const result = await login(username, password);
 
     if (result.success && result.user) {
-      // Redirect directly without showing flicker
       window.location.href = '/';
     } else {
-      setError(result.error || 'Error de autenticacion');
+      setError(result.error || 'Error de autenticación');
       setLoading(false);
     }
   };

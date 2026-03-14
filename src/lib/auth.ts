@@ -2,42 +2,27 @@ import { User, UserRole } from '@/types/auth';
 
 const STORAGE_KEY = 'sams_pets_auth';
 
-const USERS: Record<string, { password: string; user: User }> = {
-  admin: {
-    password: process.env.NEXT_PUBLIC_ADMIN_PASSWORD || '',
-    user: {
-      username: 'admin',
-      role: 'ADMINISTRADOR_GENERAL',
-      displayName: 'Administrador General'
+export async function login(username: string, password: string): Promise<{ success: boolean; user?: User; error?: string }> {
+  try {
+    const res = await fetch('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+
+    const data = await res.json();
+
+    if (data.success && data.user) {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data.user));
+      }
+      return { success: true, user: data.user };
     }
-  },
-  staff: {
-    password: process.env.NEXT_PUBLIC_STAFF_PASSWORD || '',
-    user: {
-      username: 'staff',
-      role: 'ADMINISTRATIVO',
-      displayName: 'Personal Administrativo'
-    }
+
+    return { success: false, error: data.error || 'Error de autenticación' };
+  } catch {
+    return { success: false, error: 'Error de conexión. Intenta de nuevo.' };
   }
-};
-
-export function login(username: string, password: string): { success: boolean; user?: User; error?: string } {
-  const credentials = USERS[username.toLowerCase()];
-
-  if (!credentials) {
-    return { success: false, error: 'Usuario no encontrado' };
-  }
-
-  if (credentials.password !== password) {
-    return { success: false, error: 'Contraseña incorrecta' };
-  }
-
-  // Guardar sesión en localStorage
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(credentials.user));
-  }
-
-  return { success: true, user: credentials.user };
 }
 
 export function logout(): void {
