@@ -102,26 +102,29 @@ export default function DayView({ appointments, onCancel, onReschedule, onStatus
         {days.map((day) => {
           const dateStr = format(day, 'yyyy-MM-dd');
           const hasAppointments = appointmentsByDate[dateStr]?.length > 0;
-          const isSelected = selectedDate && isSameDay(day, selectedDate);
+          const isSelected = selectedDate !== null && isSameDay(day, selectedDate);
           const dayOfWeek = day.getDay();
           const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+          const isTodayDate = isToday(day);
 
           return (
             <button
               key={dateStr}
               onClick={() => setSelectedDate(day)}
               className={`
-                aspect-square p-1 text-sm rounded-[8px] transition-colors relative flex flex-col items-center justify-center
+                aspect-square p-1 text-sm rounded-[8px] border transition-colors relative flex flex-col items-center justify-center
                 ${isWeekend ? 'bg-[#FAF8F5]' : ''}
-                ${isSelected ? 'bg-[#4A7C59] text-white' : 'hover:bg-[#F5F3EE]'}
-                ${isToday(day) && !isSelected ? 'ring-2 ring-[#4A7C59] ring-inset' : ''}
+                ${isSelected && isTodayDate ? 'bg-[#4A7C59] text-white border-2 border-gray-800' : ''}
+                ${isSelected && !isTodayDate ? 'bg-[#4A7C59] text-white' : ''}
+                ${isTodayDate && !isSelected ? 'bg-white border-2 border-[#4A7C59]' : ''}
+                ${!isSelected && !isTodayDate && !isWeekend ? 'border-transparent hover:bg-[#F5F3EE]' : ''}
               `}
             >
-              <span className={isSelected ? 'text-white' : isToday(day) ? 'text-[#4A7C59] font-bold' : 'text-[#1C1C1C]'}>
+              <span className={isSelected || isTodayDate ? 'text-white' : isTodayDate ? 'text-[#4A7C59]' : 'text-[#1C1C1C]'}>
                 {format(day, 'd')}
               </span>
               {hasAppointments && (
-                <span className={`absolute bottom-1 w-[6px] h-[6px] rounded-full ${isSelected ? 'bg-white' : 'bg-[#C97B5A]'}`} />
+                <span className={`absolute bottom-1 w-[6px] h-[6px] rounded-full ${isSelected ? 'bg-white' : isTodayDate ? 'bg-[#4A7C59]' : 'bg-[#C97B5A]'}`} />
               )}
             </button>
           );

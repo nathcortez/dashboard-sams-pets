@@ -1,8 +1,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { supabase } from '@/lib/supabase';
 import { TIME_SLOTS } from '@/types/appointment';
+
+interface ExistingAppointment {
+  id: string;
+  date: string;
+  time: string;
+  base_time_minutes?: number;
+  service_additional_time?: number;
+  recovery_time?: number;
+}
 
 interface Client {
   id: string;
@@ -21,9 +32,10 @@ interface NewAppointmentModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  selectedDate?: Date | null;
 }
 
-export default function NewAppointmentModal({ isOpen, onClose, onSuccess }: NewAppointmentModalProps) {
+export default function NewAppointmentModal({ isOpen, onClose, onSuccess, selectedDate }: NewAppointmentModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,10 +48,67 @@ export default function NewAppointmentModal({ isOpen, onClose, onSuccess }: NewA
   const [petBreed, setPetBreed] = useState('');
   const [selectedPetId, setSelectedPetId] = useState<string>('');
 
-  const [date, setDate] = useState('');
   const [time, setTime] = useState('08:00');
   const [comments, setComments] = useState('');
   const [additionalService, setAdditionalService] = useState(false);
+  const [dayAppointments, setDayAppointments] = useState<ExistingAppointment[]>([]);
+
+  // Cargar citas del día cuando cambia selectedDate
+  useEffect(() => {
+    const fetchDayAppointments = async () => {
+      if (!selectedDate) {
+        setDayAppointments([]);
+        return;
+      }
+
+      const dateStr = format(selectedDate, 'yyyy-MM-dd');
+      const { data } = await supabase
+        .from('appointments')
+        .select('id, date, time, base_time_minutes, service_additional_time, recovery_time')
+        .eq('date', dateStr)
+        .neq('status', 'cancelada');
+
+      setDayAppointments(data || []);
+    };
+
+    fetchDayAppointments();
+  }, [selectedDate]);
+
+  // Resetear hora cuando cambia additionalService (afecta duración)
+  useEffect(() => {
+    setTime('08:00');
+  }, [additionalService]);
+
+  // Calcular duración total de una cita existente
+  const getAppointmentDuration = (apt: ExistingAppointment): number => {
+    const base = apt.base_time_minutes || 45;
+    const service = apt.service_additional_time || 0;
+    const recovery = apt.recovery_time || 0;
+    return base + service + recovery;
+  };
+
+  // Obtener las horas disponibles
+  const availableTimeSlots = TIME_SLOTS.filter(slot => {
+    const [slotHour, slotMinute] = slot.split(':').map(Number);
+    const slotStart = slotHour * 60 + slotMinute;
+
+    // Duración por defecto de una nueva cita (45 min base + 30 min servicio = 75 min)
+    const newAppointmentDuration = additionalService ? 120 : 75;
+    const slotEnd = slotStart + newAppointmentDuration;
+
+    // Verificar si este slot se overlapa con alguna cita existente
+    const isOccupied = dayAppointments.some(apt => {
+      const [aptHour, aptMinute] = apt.time.split(':').map(Number);
+      const aptStart = aptHour * 60 + aptMinute;
+      const aptDuration = getAppointmentDuration(apt);
+      const aptEnd = aptStart + aptDuration;
+
+      // Verificar superposición
+      return (slotStart < aptEnd && slotEnd > aptStart);
+    });
+
+    return !isOccupied;
+  });
 
   useEffect(() => {
     const searchClient = async () => {
@@ -130,7 +199,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onSuccess }: NewA
           whatsapp,
           comments,
           additional_service: additionalService,
-          date,
+          date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : '',
           time,
           status: 'pendiente',
         });
@@ -156,7 +225,6 @@ export default function NewAppointmentModal({ isOpen, onClose, onSuccess }: NewA
     setPetName('');
     setPetBreed('');
     setSelectedPetId('');
-    setDate('');
     setTime('08:00');
     setComments('');
     setAdditionalService(false);
@@ -166,8 +234,6 @@ export default function NewAppointmentModal({ isOpen, onClose, onSuccess }: NewA
     resetForm();
     onClose();
   };
-
-  const today = new Date().toISOString().split('T')[0];
 
   if (!isOpen) return null;
 
@@ -231,16 +297,27 @@ export default function NewAppointmentModal({ isOpen, onClose, onSuccess }: NewA
             <h3 className="font-medium text-[--azul-oscuro] text-sm uppercase tracking-wide">Datos de la Cita</h3>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Fecha *</label>
-                <input type="date" value={date} onChange={(e) => setDate(e.target.value)} min={today} className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[--azul-principal] focus:border-transparent" required />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
+                <div className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-700">
+                  {selectedDate
+                    ? format(selectedDate, "EEEE d 'de' MMMM", { locale: es }).charAt(0).toUpperCase() + format(selectedDate, "EEEE d 'de' MMMM", { locale: es }).slice(1)
+                    : 'Sin fecha'}
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Hora *</label>
-                <select value={time} onChange={(e) => setTime(e.target.value)} className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[--azul-principal] focus:border-transparent" required>
-                  {TIME_SLOTS.map((slot) => (
-                    <option key={slot} value={slot}>{slot}</option>
-                  ))}
-                </select>
+                {availableTimeSlots.length === 0 ? (
+                  <div className="px-4 py-2 bg-yellow-50 border border-yellow-200 rounded-xl text-yellow-700 text-sm">
+                    No hay horarios disponibles para este día
+                  </div>
+                ) : (
+                  <select value={time} onChange={(e) => setTime(e.target.value)} className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[--azul-principal] focus:border-transparent" required>
+                    <option value="">Seleccionar hora</option>
+                    {availableTimeSlots.map((slot) => (
+                      <option key={slot} value={slot}>{slot}</option>
+                    ))}
+                  </select>
+                )}
               </div>
             </div>
             <div>

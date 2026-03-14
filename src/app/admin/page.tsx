@@ -222,6 +222,7 @@ export default function AdminPage() {
         isOpen={showNewAppointment}
         onClose={() => setShowNewAppointment(false)}
         onSuccess={fetchAppointments}
+        selectedDate={selectedDate}
       />
 
       <RescheduleModal

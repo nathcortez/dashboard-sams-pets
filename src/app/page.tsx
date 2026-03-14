@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Appointment, AppointmentStatus, TIME_SLOTS } from '@/types/appointment';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, getDay, isToday, eachMonthOfInterval, startOfYear, parseISO, addDays, subDays } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, getDay, isToday, eachMonthOfInterval, startOfYear, parseISO, addDays, subDays, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { logout, getSession } from '@/lib/auth';
 import { User, PERMISSIONS, Permission } from '@/types/auth';
@@ -417,48 +417,55 @@ export default function Dashboard() {
         {/* Fila de resumen de la semana actual */}
         <div className="bg-white rounded-[12px] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-3 mb-3 max-h-[70px]">
           <div className="grid grid-cols-7 gap-1">
-            {[
-              { day: 1, label: 'Lun' },
-              { day: 2, label: 'Mar' },
-              { day: 3, label: 'Mié' },
-              { day: 4, label: 'Jue' },
-              { day: 5, label: 'Vie' },
-              { day: 6, label: 'Sáb' },
-              { day: 0, label: 'Dom' },
-            ].map(({ day, label }) => {
+            {(() => {
               const today = new Date();
               const currentDayOfWeek = today.getDay();
-              const adjustedDay = currentDayOfWeek === 0 ? 6 : currentDayOfWeek - 1;
-              const isToday = adjustedDay === day;
-              const weekStart = subDays(today, adjustedDay);
-              const weekDay = addDays(weekStart, day);
-              const dateKey = format(weekDay, 'yyyy-MM-dd');
-              const count = (appointmentsByDate[dateKey] || []).length;
+              // getDay() devuelve 0=Domingo, 1=Lunes, ..., 6=Sábado
+              // Calculamos el lunes de esta semana
+              const mondayOffset = currentDayOfWeek === 0 ? -6 : 1 - currentDayOfWeek;
+              const monday = addDays(today, mondayOffset);
 
-              return (
-                <button
-                  key={day}
-                  onClick={() => { setSelectedDate(weekDay); setCurrentMonth(weekDay); setExpandedAppointment(null); }}
-                  className={`
-                    flex flex-col items-center justify-center py-1 rounded-lg transition-colors
-                    ${isToday ? 'bg-[#EEF4F0]' : 'hover:bg-[#F5F3EE]'}
-                  `}
-                >
-                  <span className={`text-[10px] uppercase tracking-wider ${isToday ? 'text-[#4A7C59]' : 'text-[#9E9E9E]'}`}>
-                    {label}
-                  </span>
-                  <span className={`text-sm font-medium ${isToday ? 'text-[#4A7C59]' : 'text-[#1C1C1C]'}`}>
-                    {format(weekDay, 'd')}
-                  </span>
-                  <span className={`
-                    text-[10px] font-medium px-1.5 py-0.5 rounded-full
-                    ${count === 0 ? 'text-[#9E9E9E]' : isToday ? 'bg-[#4A7C59] text-white' : 'bg-[#F5F3EE] text-[#4A4A4A]'}
-                  `}>
-                    {count === 0 ? '—' : count}
-                  </span>
-                </button>
-              );
-            })}
+              const weekDays = [
+                { offset: 0, label: 'Lun' },
+                { offset: 1, label: 'Mar' },
+                { offset: 2, label: 'Mié' },
+                { offset: 3, label: 'Jue' },
+                { offset: 4, label: 'Vie' },
+                { offset: 5, label: 'Sáb' },
+                { offset: 6, label: 'Dom' },
+              ];
+
+              return weekDays.map(({ offset, label }) => {
+                const weekDay = addDays(monday, offset);
+                const isToday = isSameDay(weekDay, today);
+                const dateKey = format(weekDay, 'yyyy-MM-dd');
+                const count = (appointmentsByDate[dateKey] || []).length;
+
+                return (
+                  <button
+                    key={offset}
+                    onClick={() => { setSelectedDate(weekDay); setCurrentMonth(weekDay); setExpandedAppointment(null); }}
+                    className={`
+                      flex flex-col items-center justify-center py-1 rounded-lg transition-colors
+                      ${isToday ? 'bg-[#4A7C59]' : 'hover:bg-[#F5F3EE]'}
+                    `}
+                  >
+                    <span className={`text-[10px] uppercase tracking-wider ${isToday ? 'text-white' : 'text-[#9E9E9E]'}`}>
+                      {label}
+                    </span>
+                    <span className={`text-sm font-medium ${isToday ? 'text-white' : 'text-[#1C1C1C]'}`}>
+                      {format(weekDay, 'd')}
+                    </span>
+                    <span className={`
+                      text-[10px] font-medium px-1.5 py-0.5 rounded-full
+                      ${count === 0 ? (isToday ? 'text-white/70' : 'text-[#9E9E9E]') : isToday ? 'bg-white text-[#4A7C59]' : 'bg-[#F5F3EE] text-[#4A4A4A]'}
+                    `}>
+                      {count === 0 ? '—' : count}
+                    </span>
+                  </button>
+                );
+              });
+            })()}
           </div>
         </div>
 
@@ -481,34 +488,38 @@ export default function Dashboard() {
             const dateKey = format(day, 'yyyy-MM-dd');
             const dayAppointments = appointmentsByDate[dateKey] || [];
             const count = dayAppointments.length;
-            const isSelected = selectedDate && isSameDay(day, selectedDate);
-            const today = isToday(day);
+            const isSelected = selectedDate !== null && isSameDay(day, selectedDate);
+            const isTodayDate = isToday(day);
             const dayOfWeek = getDay(day);
             const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+            const today = startOfDay(new Date());
+            const isPast = day < today;
 
             return (
               <button
                 key={dateKey}
-                onClick={() => { setSelectedDate(day); setExpandedAppointment(null); }}
-                disabled={isWeekend}
+                onClick={() => { if (!isPast && !isWeekend) { setSelectedDate(day); setExpandedAppointment(null); } }}
+                disabled={isWeekend || isPast}
                 className={`
                   max-h-[44px] aspect-square rounded-[8px] border transition-all flex flex-col items-center justify-center relative
                   ${isWeekend ? 'bg-[#FAF7F3] cursor-not-allowed' : ''}
-                  ${!isWeekend && isSelected ? 'bg-[#4A7C59] border-[#4A7C59]' : ''}
-                  ${!isWeekend && !isSelected ? 'border-transparent hover:bg-[#F5F3EE]' : ''}
-                  ${today && !isWeekend && !isSelected ? 'bg-[#4A7C59] text-white' : ''}
+                  ${isPast ? 'cursor-not-allowed' : ''}
+                  ${isSelected && isTodayDate && !isWeekend && !isPast ? 'bg-[#4A7C59] border-2 border-gray-800' : ''}
+                  ${isSelected && !isTodayDate && !isWeekend && !isPast ? 'bg-[#4A7C59]' : ''}
+                  ${isTodayDate && !isSelected && !isWeekend && !isPast ? 'bg-white border-2 border-[#4A7C59]' : ''}
+                  ${!isSelected && !isTodayDate && !isWeekend && !isPast ? 'border-transparent hover:bg-[#F5F3EE]' : ''}
                 `}
               >
                 <span className={`
                   text-sm font-medium
-                  ${today ? 'text-white' : isWeekend ? 'text-[#D4D0C8]' : isSelected ? 'text-white' : 'text-[#1C1C1C]'}
+                  ${isWeekend || isPast ? 'text-[#C5C5C5]' : isSelected ? 'text-white' : isTodayDate ? 'text-[#4A7C59]' : 'text-[#1C1C1C]'}
                 `}>
                   {format(day, 'd')}
                 </span>
-                {count > 0 && !isWeekend && (
+                {count > 0 && !isWeekend && !isPast && (
                   <span className={`
                     absolute bottom-0.5 h-[3px] rounded-[2px]
-                    ${isSelected ? 'bg-white w-5' : count <= 2 ? 'bg-[#A8D5B5] w-3' : count <= 4 ? 'bg-[#F5C842] w-4' : 'bg-[#C97B5A] w-5'}
+                    ${isSelected ? 'bg-white w-5' : isTodayDate ? 'bg-[#4A7C59] w-5' : count <= 2 ? 'bg-[#A8D5B5] w-3' : count <= 4 ? 'bg-[#F5C842] w-4' : 'bg-[#C97B5A] w-5'}
                   `} />
                 )}
               </button>
