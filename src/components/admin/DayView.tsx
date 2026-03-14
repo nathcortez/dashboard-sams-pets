@@ -13,11 +13,18 @@ interface DayViewProps {
   onStatusChange: (id: string, status: AppointmentStatus) => void;
 }
 
-const statusColors: Record<AppointmentStatus, string> = {
-  pendiente: 'bg-yellow-100 border-yellow-300 text-yellow-800',
-  confirmada: 'bg-blue-100 border-blue-300 text-blue-800',
-  completada: 'bg-green-100 border-green-300 text-green-800',
-  cancelada: 'bg-red-50 border-red-200 text-red-400 line-through',
+const borderColors: Record<AppointmentStatus, string> = {
+  pendiente: '#E8943D',
+  confirmada: '#2563EB',
+  completada: '#4A7C59',
+  cancelada: '#EF4444',
+};
+
+const statusBadgeStyles: Record<AppointmentStatus, { bg: string; text: string }> = {
+  pendiente: { bg: '#FFF4EA', text: '#E8943D' },
+  confirmada: { bg: '#EFF6FF', text: '#2563EB' },
+  completada: { bg: '#E8F5E9', text: '#4A7C59' },
+  cancelada: { bg: '#FEF2F2', text: '#EF4444' },
 };
 
 const statusLabels: Record<AppointmentStatus, string> = {
@@ -58,47 +65,53 @@ export default function DayView({ appointments, onCancel, onReschedule, onStatus
   }, [selectedDate, appointmentsByDate]);
 
   const formatDateHeader = (date: Date) => {
-    return format(date, "d MMMM yyyy", { locale: es });
+    return format(date, "d 'de' MMMM yyyy", { locale: es });
   };
 
   const formatTime = (time: string) => {
     const [hour, minute] = time.split(':').map(Number);
     const period = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour > 12 ? hour - 12 : hour;
+    const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
     return `${displayHour}:${minute.toString().padStart(2, '0')} ${period}`;
   };
 
   return (
-    <div className="bg-white rounded-[16px] shadow-[0_2px_8px_rgba(0,0,0,0.06)] p-5">
-      {/* Cabecera del mes */}
+    <div className="rounded-2xl p-5">
+      {/* Month header */}
       <div className="flex items-center justify-between mb-5">
         <button
           onClick={() => setCurrentDate(subMonths(currentDate, 1))}
-          className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-[#F5F3EE] transition-colors text-[#4A4A4A]"
+          className="w-9 h-9 flex items-center justify-center rounded-xl transition-colors"
+          style={{ color: '#1B3A5C' }}
+          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F8F7F4')}
+          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
         >
           ←
         </button>
-        <h3 className="text-[18px] font-bold text-[#1C1C1C]">
-          {format(currentDate, "MMMM yyyy", { locale: es }).charAt(0).toUpperCase() + format(currentDate, "MMMM yyyy", { locale: es }).slice(1)}
+        <h3 className="text-lg font-bold capitalize" style={{ color: '#1B3A5C' }}>
+          {format(currentDate, 'MMMM yyyy', { locale: es })}
         </h3>
         <button
           onClick={() => setCurrentDate(addMonths(currentDate, 1))}
-          className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-[#F5F3EE] transition-colors text-[#4A4A4A]"
+          className="w-9 h-9 flex items-center justify-center rounded-xl transition-colors"
+          style={{ color: '#1B3A5C' }}
+          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F8F7F4')}
+          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
         >
           →
         </button>
       </div>
 
-      {/* Días de la semana */}
+      {/* Weekday headers */}
       <div className="grid grid-cols-7 gap-1 mb-2">
         {['D', 'L', 'M', 'X', 'J', 'V', 'S'].map((day) => (
-          <div key={day} className="text-center text-[11px] font-medium uppercase tracking-wider text-[#9E9E9E] py-2">
+          <div key={day} className="text-center text-xs font-medium uppercase tracking-wider py-2" style={{ color: '#6B6B6B' }}>
             {day}
           </div>
         ))}
       </div>
 
-      {/* Días del mes */}
+      {/* Calendar grid */}
       <div className="grid grid-cols-7 gap-1">
         {days.map((day) => {
           const dateStr = format(day, 'yyyy-MM-dd');
@@ -112,138 +125,168 @@ export default function DayView({ appointments, onCancel, onReschedule, onStatus
             <button
               key={dateStr}
               onClick={() => setSelectedDate(day)}
-              className={`
-                aspect-square p-1 text-sm rounded-[8px] border transition-colors relative flex flex-col items-center justify-center
-                ${isWeekend ? 'bg-[#FAF8F5]' : ''}
-                ${isSelected && isTodayDate ? 'bg-[#4A7C59] text-white border-2 border-gray-800' : ''}
-                ${isSelected && !isTodayDate ? 'bg-[#4A7C59] text-white' : ''}
-                ${isTodayDate && !isSelected ? 'bg-white border-2 border-[#4A7C59]' : ''}
-                ${!isSelected && !isTodayDate && !isWeekend ? 'border-transparent hover:bg-[#F5F3EE]' : ''}
-              `}
+              className="aspect-square p-1 text-sm rounded-xl border transition-colors relative flex flex-col items-center justify-center"
+              style={{
+                backgroundColor: isSelected ? '#E8943D' : isWeekend ? '#FAF8F5' : 'transparent',
+                color: isSelected ? '#FFFFFF' : '#1B3A5C',
+                borderWidth: isTodayDate && !isSelected ? '2px' : '1px',
+                borderColor: isTodayDate && !isSelected ? '#E8943D' : 'transparent',
+              }}
+              onMouseEnter={(e) => {
+                if (!isSelected) e.currentTarget.style.backgroundColor = '#F8F7F4';
+              }}
+              onMouseLeave={(e) => {
+                if (!isSelected) e.currentTarget.style.backgroundColor = isWeekend ? '#FAF8F5' : 'transparent';
+              }}
             >
-              <span className={isSelected || isTodayDate ? 'text-white' : isTodayDate ? 'text-[#4A7C59]' : 'text-[#1C1C1C]'}>
-                {format(day, 'd')}
-              </span>
+              <span className="font-medium">{format(day, 'd')}</span>
               {hasAppointments && (
-                <span className={`absolute bottom-1 w-[6px] h-[6px] rounded-full ${isSelected ? 'bg-white' : isTodayDate ? 'bg-[#4A7C59]' : 'bg-[#C97B5A]'}`} />
+                <span
+                  className="absolute bottom-1 w-1.5 h-1.5 rounded-full"
+                  style={{ backgroundColor: isSelected ? '#FFFFFF' : '#E8943D' }}
+                />
               )}
             </button>
           );
         })}
       </div>
 
-      {/* Panel de citas del día seleccionado */}
-      <div className="mt-6 pt-5 border-t border-[#E8E4DC]">
-        <h4 className="text-[16px] font-semibold text-[#1C1C1C] mb-4">
+      {/* Selected day panel */}
+      <div className="mt-6 pt-5" style={{ borderTop: '1px solid #E5E3DE' }}>
+        <h4 className="text-base font-semibold mb-4" style={{ color: '#1B3A5C' }}>
           {selectedDate ? formatDateHeader(selectedDate) : 'Selecciona un día'}
         </h4>
 
         {selectedDayAppointments.length === 0 ? (
-          <div className="bg-[#FAF8F5] rounded-[12px] p-8 text-center">
-            <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center text-2xl mb-3 mx-auto shadow-sm">
+          <div className="rounded-2xl p-8 text-center" style={{ backgroundColor: '#F8F7F4' }}>
+            <div
+              className="w-14 h-14 rounded-full flex items-center justify-center text-2xl mb-3 mx-auto bg-white"
+              style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
+            >
               📅
             </div>
-            <p className="text-[#4A4A4A] font-medium mb-1">No hay citas programadas</p>
-            <p className="text-[#9E9E9E] text-sm">Selecciona otro día o agenda una nueva</p>
+            <p className="font-medium mb-1" style={{ color: '#1B3A5C' }}>No hay citas programadas</p>
+            <p className="text-sm" style={{ color: '#6B6B6B' }}>Selecciona otro día o agenda una nueva</p>
           </div>
         ) : (
           <div className="space-y-3">
-            {selectedDayAppointments.map((appointment) => (
-              <div
-                key={appointment.id}
-                className={`bg-white rounded-2xl p-4 shadow-md border-l-4 ${
-                  appointment.status === 'cancelada'
-                    ? 'border-red-300 opacity-60'
-                    : appointment.status === 'completada'
-                    ? 'border-green-400'
-                    : appointment.status === 'confirmada'
-                    ? 'border-blue-400'
-                    : 'border-yellow-400'
-                } ${appointment.status === 'cancelada' ? 'line-through text-gray-400' : ''}`}
-              >
-                <div className="flex justify-between items-start mb-2">
-                  <div className="flex items-center gap-3">
-                    {appointment.petPhoto && (
-                      <img src={appointment.petPhoto} alt={appointment.petName || ''} className="w-10 h-10 rounded-full object-cover" />
-                    )}
-                    <div>
-                      <h5 className="font-semibold text-[--azul-oscuro]">{appointment.petName}</h5>
-                      {appointment.petBreedEmoji && appointment.petBreed && (
-                        <p className="text-xs text-gray-500">{appointment.petBreedEmoji} {appointment.petBreed}</p>
+            {selectedDayAppointments.map((appointment) => {
+              const petName = appointment.petName || appointment.pet_name || 'Sin nombre';
+              const ownerName = appointment.ownerName || appointment.owner_name || '';
+              const breed = appointment.petBreed || appointment.pet_breed || '';
+              const breedEmoji = appointment.petBreedEmoji || appointment.pet_breed_emoji || '';
+              const serviceName = appointment.serviceName || appointment.service_name || '';
+              const photo = appointment.petPhoto || appointment.pet_photo_url || '';
+              const comments = appointment.comments || '';
+              const additionalService = appointment.additionalService || appointment.additional_service || false;
+              const rescheduleHistory = appointment.rescheduleHistory || appointment.reschedule_history || [];
+
+              return (
+                <div
+                  key={appointment.id}
+                  className="bg-white rounded-2xl p-4 shadow-[0_2px_12px_rgba(0,0,0,0.06)]"
+                  style={{
+                    borderLeft: `4px solid ${borderColors[appointment.status]}`,
+                    opacity: appointment.status === 'cancelada' ? 0.6 : 1,
+                  }}
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex items-center gap-3">
+                      {photo ? (
+                        <img src={photo} alt={petName} className="w-10 h-10 rounded-full object-cover" />
+                      ) : (
+                        <div
+                          className="w-10 h-10 rounded-full flex items-center justify-center text-lg"
+                          style={{ backgroundColor: '#FFF4EA' }}
+                        >
+                          {breedEmoji || '🐕'}
+                        </div>
                       )}
-                      {appointment.serviceName && (
-                        <p className="text-xs text-gray-500">✂️ {appointment.serviceName}</p>
-                      )}
-                      <p className="text-xs text-gray-500">{appointment.petBreedAge}</p>
+                      <div>
+                        <h5 className="font-bold text-sm" style={{ color: '#1B3A5C' }}>{petName} {breedEmoji}</h5>
+                        {breed && <p className="text-xs" style={{ color: '#6B6B6B' }}>{breed}</p>}
+                        {serviceName && <p className="text-xs" style={{ color: '#6B6B6B' }}>✂️ {serviceName}</p>}
+                      </div>
                     </div>
+                    <span
+                      className="px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap"
+                      style={{
+                        backgroundColor: statusBadgeStyles[appointment.status].bg,
+                        color: statusBadgeStyles[appointment.status].text,
+                      }}
+                    >
+                      {statusLabels[appointment.status]}
+                    </span>
                   </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[appointment.status]}`}>
-                    {statusLabels[appointment.status]}
-                  </span>
-                </div>
 
-                <div className="flex gap-3 text-sm text-gray-600 mb-2">
-                  <span>⏰ {formatTime(appointment.time)}</span>
-                </div>
-
-                <div className="text-sm text-gray-500 mb-3">
-                  <p>👤 {appointment.ownerName}</p>
-                  <p>📱 {appointment.whatsapp}</p>
-                  {appointment.additionalService && (
-                    <p className="text-[--naranja] font-medium">⚠️ Servicio adicional</p>
-                  )}
-                  {appointment.comments && (
-                    <p className="text-xs mt-1 italic">📝 {appointment.comments}</p>
-                  )}
-                  {appointment.rescheduleHistory && appointment.rescheduleHistory.length > 0 && (
-                    <p className="text-xs mt-1 text-blue-600">
-                      🔄 Re-agendada {appointment.rescheduleHistory.length} vez(es)
-                    </p>
-                  )}
-                </div>
-
-                {appointment.status !== 'cancelada' && appointment.status !== 'completada' && (
-                  <div className="flex gap-2 flex-wrap">
-                    <button
-                      onClick={() => onStatusChange(appointment.id, 'confirmada')}
-                      className="py-1.5 px-3 bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs font-medium rounded-lg transition-colors"
-                    >
-                      Confirmar
-                    </button>
-                    <button
-                      onClick={() => onStatusChange(appointment.id, 'completada')}
-                      className="py-1.5 px-3 bg-green-100 hover:bg-green-200 text-green-700 text-xs font-medium rounded-lg transition-colors"
-                    >
-                      Completar
-                    </button>
-                    <button
-                      onClick={() => onReschedule(appointment)}
-                      className="py-1.5 px-3 bg-[--naranja]/10 hover:bg-[--naranja]/20 text-[--naranja] text-xs font-medium rounded-lg transition-colors"
-                    >
-                      Re-agendar
-                    </button>
-                    <button
-                      onClick={() => onCancel(appointment.id)}
-                      className="py-1.5 px-3 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-medium rounded-lg transition-colors"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      onClick={() => window.open(generateWhatsAppReminder(appointment), '_blank')}
-                      className="py-1.5 px-3 bg-green-50 hover:bg-green-100 text-green-700 text-xs font-medium rounded-lg transition-colors"
-                    >
-                      📱 Recordatorio
-                    </button>
+                  <div className="flex gap-3 text-sm mb-2" style={{ color: '#1B3A5C' }}>
+                    <span className="whitespace-nowrap">⏰ {formatTime(appointment.time)}</span>
                   </div>
-                )}
 
-                {appointment.status === 'cancelada' && (
-                  <div className="text-xs text-red-500">
-                    Esta cita fue cancelada
+                  <div className="text-xs mb-3" style={{ color: '#6B6B6B' }}>
+                    <p>👤 {ownerName}</p>
+                    <p>📱 {appointment.whatsapp}</p>
+                    {additionalService && (
+                      <p className="font-medium" style={{ color: '#E8943D' }}>⚠️ Servicio adicional</p>
+                    )}
+                    {comments && <p className="mt-1 italic">📝 {comments}</p>}
+                    {rescheduleHistory.length > 0 && (
+                      <p className="mt-1" style={{ color: '#2563EB' }}>
+                        🔄 Re-agendada {rescheduleHistory.length} vez(es)
+                      </p>
+                    )}
                   </div>
-                )}
-              </div>
-            ))}
+
+                  {appointment.status !== 'cancelada' && appointment.status !== 'completada' && (
+                    <div className="flex gap-2 flex-wrap">
+                      {appointment.status === 'pendiente' && (
+                        <button
+                          onClick={() => onStatusChange(appointment.id, 'confirmada')}
+                          className="py-1.5 px-3 text-white text-xs font-semibold rounded-xl transition-colors"
+                          style={{ backgroundColor: '#E8943D' }}
+                        >
+                          ✓ Confirmar
+                        </button>
+                      )}
+                      {appointment.status === 'confirmada' && (
+                        <button
+                          onClick={() => onStatusChange(appointment.id, 'completada')}
+                          className="py-1.5 px-3 text-white text-xs font-semibold rounded-xl transition-colors"
+                          style={{ backgroundColor: '#4A7C59' }}
+                        >
+                          ✅ Completar
+                        </button>
+                      )}
+                      <button
+                        onClick={() => onReschedule(appointment)}
+                        className="py-1.5 px-3 text-xs font-medium rounded-xl transition-colors"
+                        style={{ backgroundColor: '#FFF4EA', color: '#E8943D' }}
+                      >
+                        📅 Re-agendar
+                      </button>
+                      <button
+                        onClick={() => onCancel(appointment.id)}
+                        className="py-1.5 px-3 text-xs font-medium rounded-xl transition-colors"
+                        style={{ backgroundColor: '#FEF2F2', color: '#EF4444' }}
+                      >
+                        ❌ Cancelar
+                      </button>
+                      <button
+                        onClick={() => window.open(generateWhatsAppReminder(appointment), '_blank')}
+                        className="py-1.5 px-3 text-xs font-medium rounded-xl transition-colors"
+                        style={{ backgroundColor: '#E8F5E9', color: '#4A7C59' }}
+                      >
+                        📱 Recordatorio
+                      </button>
+                    </div>
+                  )}
+
+                  {appointment.status === 'cancelada' && (
+                    <p className="text-xs" style={{ color: '#EF4444' }}>Esta cita fue cancelada</p>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

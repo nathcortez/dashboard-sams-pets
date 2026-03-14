@@ -1,22 +1,31 @@
 @import "tailwindcss";
 
 :root {
-  /* Nueva paleta Sam's Pets - Grooming Canino */
-  --background: #F5F3EE;
-  --foreground: #1C1C1C;
+  --naranja: #E8943D;
+  --naranja-hover: #D4832F;
+  --naranja-light: #FFF4EA;
+  --azul-oscuro: #1B3A5C;
+  --azul-medio: #2563EB;
+  --verde: #4A7C59;
+  --verde-light: #E8F5E9;
+  --fondo: #F8F7F4;
+  --gris: #6B6B6B;
+  --borde: #E5E3DE;
+
+  --background: #F8F7F4;
+  --foreground: #1B3A5C;
   --foreground-secondary: #6B6B6B;
 
-  /* Colores de marca */
   --sidebar-bg: #FAFAF8;
-  --sidebar-text: #1C1C1C;
+  --sidebar-text: #1B3A5C;
   --sidebar-text-secondary: #6B6B6B;
   --sidebar-hover: #F0EDE8;
   --sidebar-active: #E8E5DE;
 
-  --primary: #4A7C59;
-  --primary-hover: #3D6A4B;
-  --secondary: #C97B5A;
-  --secondary-hover: #B56A4B;
+  --primary: #E8943D;
+  --primary-hover: #D4832F;
+  --secondary: #2563EB;
+  --secondary-hover: #1D4ED8;
 
   --card-bg: #FFFFFF;
   --card-shadow: rgba(0, 0, 0, 0.06);
@@ -39,12 +48,12 @@
   --color-card-bg: var(--card-bg);
   --color-border: var(--border-color);
 
-  --font-sans: 'Plus Jakarta Sans', sans-serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
   --font-mono: var(--font-geist-mono);
 }
 
 body {
-  background: var(--background);
+  background-color: var(--fondo);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: Inter, system-ui, sans-serif;
 }

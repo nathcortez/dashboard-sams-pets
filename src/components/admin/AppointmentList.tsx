@@ -10,13 +10,21 @@ interface AppointmentListProps {
   onStatusChange: (id: string, status: AppointmentStatus) => void;
   onCancel?: (id: string) => void;
   onReschedule?: (appointment: Appointment) => void;
+  compact?: boolean;
 }
 
-const statusColors: Record<AppointmentStatus, string> = {
-  pendiente: 'bg-yellow-100 text-yellow-800',
-  confirmada: 'bg-blue-100 text-blue-800',
-  completada: 'bg-green-100 text-green-800',
-  cancelada: 'bg-red-50 text-red-400',
+const borderColors: Record<AppointmentStatus, string> = {
+  pendiente: '#E8943D',
+  confirmada: '#2563EB',
+  completada: '#4A7C59',
+  cancelada: '#EF4444',
+};
+
+const statusBadgeStyles: Record<AppointmentStatus, { bg: string; text: string }> = {
+  pendiente: { bg: '#FFF4EA', text: '#E8943D' },
+  confirmada: { bg: '#EFF6FF', text: '#2563EB' },
+  completada: { bg: '#E8F5E9', text: '#4A7C59' },
+  cancelada: { bg: '#FEF2F2', text: '#EF4444' },
 };
 
 const statusLabels: Record<AppointmentStatus, string> = {
@@ -26,15 +34,19 @@ const statusLabels: Record<AppointmentStatus, string> = {
   cancelada: 'Cancelada',
 };
 
-export default function AppointmentList({ appointments, onStatusChange, onCancel, onReschedule }: AppointmentListProps) {
+export default function AppointmentList({ appointments, onStatusChange, onCancel, onReschedule, compact }: AppointmentListProps) {
   const formatDate = (dateStr: string) => {
-    return format(new Date(dateStr), "dd MMM yyyy", { locale: es });
+    try {
+      return format(new Date(dateStr + 'T12:00:00'), "EEEE d MMM", { locale: es });
+    } catch {
+      return dateStr;
+    }
   };
 
   const formatTime = (time: string) => {
     const [hour, minute] = time.split(':').map(Number);
     const period = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour > 12 ? hour - 12 : hour;
+    const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
     return `${displayHour}:${minute.toString().padStart(2, '0')} ${period}`;
   };
 
@@ -51,108 +63,147 @@ export default function AppointmentList({ appointments, onStatusChange, onCancel
 
   if (appointments.length === 0) {
     return (
-      <div className="bg-white rounded-2xl p-8 text-center">
+      <div className="bg-white rounded-2xl p-8 text-center shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
         <div className="text-4xl mb-3">📅</div>
-        <p className="text-[--gris]">No hay citas programadas</p>
+        <p style={{ color: '#6B6B6B' }}>No hay citas programadas</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-3">
-      {appointments.map((appointment) => (
-        <div
-          key={appointment.id}
-          className={`bg-white rounded-2xl p-4 shadow-md ${appointment.status === 'cancelada' ? 'opacity-60' : ''}`}
-        >
-          <div className="flex justify-between items-start mb-3">
-            <div className="flex items-center gap-3">
-              {appointment.petPhoto && (
-                <img src={appointment.petPhoto} alt={appointment.petName || ''} className="w-10 h-10 rounded-full object-cover" />
+      {appointments.map((appointment) => {
+        const petName = appointment.petName || appointment.pet_name || 'Sin nombre';
+        const ownerName = appointment.ownerName || appointment.owner_name || '';
+        const breed = appointment.petBreed || appointment.pet_breed || '';
+        const breedEmoji = appointment.petBreedEmoji || appointment.pet_breed_emoji || '';
+        const serviceName = appointment.serviceName || appointment.service_name || '';
+        const photo = appointment.petPhoto || appointment.pet_photo_url || '';
+        const comments = appointment.comments || '';
+        const whatsapp = appointment.whatsapp || '';
+        const rescheduleHistory = appointment.rescheduleHistory || appointment.reschedule_history || [];
+        const additionalService = appointment.additionalService || appointment.additional_service || false;
+
+        return (
+          <div
+            key={appointment.id}
+            className={`bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] ${compact ? 'p-3' : 'p-4'}`}
+            style={{
+              borderLeft: `4px solid ${borderColors[appointment.status]}`,
+              opacity: appointment.status === 'cancelada' ? 0.6 : 1,
+            }}
+          >
+            <div className="flex items-start gap-3">
+              {/* Pet photo / fallback */}
+              {photo ? (
+                <img src={photo} alt={petName} className="w-10 h-10 rounded-full object-cover shrink-0" />
+              ) : (
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 text-lg"
+                  style={{ backgroundColor: '#FFF4EA' }}
+                >
+                  {breedEmoji || '🐕'}
+                </div>
               )}
-              <div>
-                <h4 className={`font-semibold text-[--azul-oscuro] ${appointment.status === 'cancelada' ? 'line-through text-gray-400' : ''}`}>
-                  {appointment.petName}
-                </h4>
-                {appointment.petBreedEmoji && appointment.petBreed && (
-                  <p className="text-sm text-[--gris]">{appointment.petBreedEmoji} {appointment.petBreed}</p>
+
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <h4
+                      className={`font-bold text-sm ${appointment.status === 'cancelada' ? 'line-through' : ''}`}
+                      style={{ color: appointment.status === 'cancelada' ? '#9CA3AF' : '#1B3A5C' }}
+                    >
+                      {petName} {breedEmoji}
+                    </h4>
+                    <p className="text-xs capitalize whitespace-nowrap" style={{ color: '#6B6B6B' }}>
+                      {formatDate(appointment.date)} · {formatTime(appointment.time)}
+                    </p>
+                  </div>
+                  <span
+                    className="px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap shrink-0"
+                    style={{
+                      backgroundColor: statusBadgeStyles[appointment.status].bg,
+                      color: statusBadgeStyles[appointment.status].text,
+                    }}
+                  >
+                    {statusLabels[appointment.status]}
+                  </span>
+                </div>
+
+                <div className="mt-1.5 text-xs space-y-0.5" style={{ color: '#6B6B6B' }}>
+                  <p>👤 {ownerName} {whatsapp && `· 📱 ${whatsapp}`}</p>
+                  {serviceName && <p>✂️ {serviceName}</p>}
+                  {additionalService && (
+                    <p style={{ color: '#E8943D' }} className="font-medium">⚠️ Servicio adicional</p>
+                  )}
+                  {comments && <p className="italic">📝 {comments}</p>}
+                  {rescheduleHistory.length > 0 && (
+                    <p style={{ color: '#2563EB' }}>
+                      🔄 Re-agendada {rescheduleHistory.length} vez(es)
+                    </p>
+                  )}
+                </div>
+
+                {/* Action buttons */}
+                {appointment.status !== 'cancelada' && appointment.status !== 'completada' && (
+                  <div className="flex gap-2 flex-wrap mt-3">
+                    {appointment.status === 'pendiente' && (
+                      <button
+                        onClick={() => onStatusChange(appointment.id, 'confirmada')}
+                        className="py-1.5 px-3 text-white text-xs font-semibold rounded-xl transition-colors"
+                        style={{ backgroundColor: '#E8943D' }}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#D4832F')}
+                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#E8943D')}
+                      >
+                        ✓ Confirmar
+                      </button>
+                    )}
+                    {appointment.status === 'confirmada' && (
+                      <button
+                        onClick={() => onStatusChange(appointment.id, 'completada')}
+                        className="py-1.5 px-3 text-white text-xs font-semibold rounded-xl transition-colors"
+                        style={{ backgroundColor: '#4A7C59' }}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#3D6A4B')}
+                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#4A7C59')}
+                      >
+                        ✅ Completar
+                      </button>
+                    )}
+                    {onReschedule && (
+                      <button
+                        onClick={() => onReschedule(appointment)}
+                        className="py-1.5 px-3 text-xs font-medium rounded-xl transition-colors"
+                        style={{ backgroundColor: '#FFF4EA', color: '#E8943D' }}
+                      >
+                        📅 Re-agendar
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleCancel(appointment.id)}
+                      className="py-1.5 px-3 text-xs font-medium rounded-xl transition-colors"
+                      style={{ backgroundColor: '#FEF2F2', color: '#EF4444' }}
+                    >
+                      ❌ Cancelar
+                    </button>
+                    <button
+                      onClick={() => window.open(generateWhatsAppReminder(appointment), '_blank')}
+                      className="py-1.5 px-3 text-xs font-medium rounded-xl transition-colors"
+                      style={{ backgroundColor: '#E8F5E9', color: '#4A7C59' }}
+                    >
+                      📱 Recordatorio
+                    </button>
+                  </div>
                 )}
-                {appointment.serviceName && (
-                  <p className="text-sm text-[--gris]">✂️ {appointment.serviceName}</p>
+
+                {appointment.status === 'cancelada' && (
+                  <p className="text-xs mt-2" style={{ color: '#EF4444' }}>Esta cita fue cancelada</p>
                 )}
-                <p className="text-sm text-[--gris]">{appointment.petBreedAge}</p>
               </div>
             </div>
-            <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[appointment.status]}`}>
-              {statusLabels[appointment.status]}
-            </span>
           </div>
-
-          <div className="flex gap-4 text-sm text-[--azul-oscuro] mb-3">
-            <span>📅 {formatDate(appointment.date)}</span>
-            <span>⏰ {formatTime(appointment.time)}</span>
-          </div>
-
-          <div className="text-sm text-[--gris] mb-3">
-            <p>👤 {appointment.ownerName}</p>
-            <p>📱 {appointment.whatsapp}</p>
-            {appointment.additionalService && (
-              <p className="text-[--naranja] font-medium">⚠️ Servicio adicional</p>
-            )}
-            {appointment.comments && (
-              <p className="text-sm mt-1 italic">📝 {appointment.comments}</p>
-            )}
-            {appointment.rescheduleHistory && appointment.rescheduleHistory.length > 0 && (
-              <p className="text-xs mt-1 text-blue-600">
-                🔄 Re-agendada {appointment.rescheduleHistory.length} vez(es)
-              </p>
-            )}
-          </div>
-
-          {appointment.status !== 'cancelada' && appointment.status !== 'completada' && (
-            <div className="flex gap-2 flex-wrap">
-              <button
-                onClick={() => onStatusChange(appointment.id, 'confirmada')}
-                className="flex-1 py-2 px-3 bg-blue-100 hover:bg-blue-200 text-blue-700 text-sm font-medium rounded-lg transition-colors"
-              >
-                Confirmar
-              </button>
-              <button
-                onClick={() => onStatusChange(appointment.id, 'completada')}
-                className="flex-1 py-2 px-3 bg-green-100 hover:bg-green-200 text-green-700 text-sm font-medium rounded-lg transition-colors"
-              >
-                Completar
-              </button>
-              {onReschedule && (
-                <button
-                  onClick={() => onReschedule(appointment)}
-                  className="flex-1 py-2 px-3 bg-[--naranja]/10 hover:bg-[--naranja]/20 text-[--naranja] text-sm font-medium rounded-lg transition-colors"
-                >
-                  Re-agendar
-                </button>
-              )}
-              <button
-                onClick={() => handleCancel(appointment.id)}
-                className="flex-1 py-2 px-3 bg-red-100 hover:bg-red-200 text-red-700 text-sm font-medium rounded-lg transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => window.open(generateWhatsAppReminder(appointment), '_blank')}
-                className="flex-1 py-2 px-3 bg-green-50 hover:bg-green-100 text-green-700 text-sm font-medium rounded-lg transition-colors"
-              >
-                📱 Recordatorio
-              </button>
-            </div>
-          )}
-
-          {appointment.status === 'cancelada' && (
-            <div className="text-xs text-red-500">
-              Esta cita fue cancelada
-            </div>
-          )}
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

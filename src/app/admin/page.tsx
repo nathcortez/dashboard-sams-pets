@@ -1,27 +1,27 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Appointment, AppointmentStatus } from '@/types/appointment';
 import { supabase } from '@/lib/supabase';
-import StatsCard from '@/components/admin/StatsCard';
 import AppointmentList from '@/components/admin/AppointmentList';
 import DayView from '@/components/admin/DayView';
 import TodayView from '@/components/admin/TodayView';
 import NewAppointmentModal from '@/components/admin/NewAppointmentModal';
 import RescheduleModal from '@/components/admin/RescheduleModal';
+import { format, isToday, parseISO, isAfter, isBefore, addDays, startOfDay } from 'date-fns';
+import { es } from 'date-fns/locale';
 
-type ViewMode = 'list' | 'calendar' | 'today';
+type ViewMode = 'today' | 'upcoming' | 'calendar' | 'all';
 
 export default function AdminPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [filter, setFilter] = useState<'all' | AppointmentStatus>('all');
+  const [viewMode, setViewMode] = useState<ViewMode>('today');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
-
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showNewAppointment, setShowNewAppointment] = useState(false);
   const [rescheduleAppointment, setRescheduleAppointment] = useState<Appointment | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [historyFilter, setHistoryFilter] = useState<'all' | AppointmentStatus>('all');
 
   const fetchAppointments = async () => {
     try {
@@ -42,6 +42,8 @@ export default function AdminPage() {
         petBreed: row.pet_breed,
         petBreedEmoji: row.pet_breed_emoji,
         petSize: row.pet_size,
+        baseTimeMinutes: row.base_time_minutes,
+        serviceId: row.service_id,
         serviceName: row.service_name,
         serviceAdditionalTime: row.service_additional_time,
         recoveryTime: row.recovery_time,
@@ -124,122 +126,219 @@ export default function AdminPage() {
     setRescheduleAppointment(null);
   };
 
-  const filteredAppointments = appointments.filter((apt) => {
-    if (filter === 'all') return true;
-    return apt.status === filter;
-  });
+  // Today's stats
+  const todayStats = useMemo(() => {
+    const todayApts = appointments.filter((apt) => {
+      try { return isToday(parseISO(apt.date)); } catch { return false; }
+    });
+    return {
+      total: todayApts.length,
+      pending: todayApts.filter((a) => a.status === 'pendiente').length,
+      confirmed: todayApts.filter((a) => a.status === 'confirmada').length,
+      completed: todayApts.filter((a) => a.status === 'completada').length,
+    };
+  }, [appointments]);
 
-  const stats = {
-    total: appointments.length,
-    pending: appointments.filter((a) => a.status === 'pendiente').length,
-    confirmed: appointments.filter((a) => a.status === 'confirmada').length,
-    completed: appointments.filter((a) => a.status === 'completada').length,
-    cancelled: appointments.filter((a) => a.status === 'cancelada').length,
+  // Upcoming appointments (next 7 days, excluding today)
+  const upcomingAppointments = useMemo(() => {
+    const tomorrow = startOfDay(addDays(new Date(), 1));
+    const nextWeek = startOfDay(addDays(new Date(), 8));
+    return appointments.filter((apt) => {
+      try {
+        const d = parseISO(apt.date);
+        return (isAfter(d, tomorrow) || format(d, 'yyyy-MM-dd') === format(tomorrow, 'yyyy-MM-dd')) && isBefore(d, nextWeek);
+      } catch { return false; }
+    }).filter((apt) => apt.status !== 'completada' && apt.status !== 'cancelada');
+  }, [appointments]);
+
+  // Group upcoming by date
+  const upcomingGrouped = useMemo(() => {
+    const groups: Record<string, Appointment[]> = {};
+    upcomingAppointments.forEach((apt) => {
+      if (!groups[apt.date]) groups[apt.date] = [];
+      groups[apt.date].push(apt);
+    });
+    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+  }, [upcomingAppointments]);
+
+  // History (all) with filter
+  const historyAppointments = useMemo(() => {
+    const sorted = [...appointments].sort((a, b) => b.date.localeCompare(a.date) || b.time.localeCompare(a.time));
+    if (historyFilter === 'all') return sorted;
+    return sorted.filter((apt) => apt.status === historyFilter);
+  }, [appointments, historyFilter]);
+
+  // Group history by date
+  const historyGrouped = useMemo(() => {
+    const groups: Record<string, Appointment[]> = {};
+    historyAppointments.forEach((apt) => {
+      if (!groups[apt.date]) groups[apt.date] = [];
+      groups[apt.date].push(apt);
+    });
+    return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a));
+  }, [historyAppointments]);
+
+  const formatDateLabel = (dateStr: string) => {
+    try {
+      const d = parseISO(dateStr);
+      const tomorrow = addDays(new Date(), 1);
+      if (format(d, 'yyyy-MM-dd') === format(tomorrow, 'yyyy-MM-dd')) {
+        return `Mañana — ${format(d, "EEEE d 'de' MMMM", { locale: es })}`;
+      }
+      return format(d, "EEEE d 'de' MMMM", { locale: es });
+    } catch {
+      return dateStr;
+    }
   };
+
+  const tabs: { key: ViewMode; label: string; emoji: string }[] = [
+    { key: 'today', label: 'Hoy', emoji: '🐕' },
+    { key: 'upcoming', label: 'Próximas', emoji: '📅' },
+    { key: 'calendar', label: 'Calendario', emoji: '🗓️' },
+    { key: 'all', label: 'Historial', emoji: '📋' },
+  ];
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F8F7F4' }}>
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-[--azul-principal] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-[--gris]">Cargando...</p>
+          <div className="w-12 h-12 border-4 border-[#E8943D] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-[#6B6B6B]">Cargando citas...</p>
         </div>
       </div>
     );
   }
 
+  const todayFormatted = format(new Date(), "EEEE d 'de' MMMM, yyyy", { locale: es });
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm">
+    <div className="min-h-screen" style={{ backgroundColor: '#F8F7F4' }}>
+      {/* Header */}
+      <header className="bg-white shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full overflow-hidden bg-[--azul-principal] flex items-center justify-center">
-              <span className="text-white text-lg">🐕</span>
-            </div>
-            <div>
-              <h1 className="text-[22px] font-semibold text-[#1C1C1C]">Gestión de Citas</h1>
-              <p className="text-xs text-[--gris]">Sam's Pets</p>
-            </div>
+          <div>
+            <h1 className="text-[24px] font-bold" style={{ color: '#1B3A5C' }}>
+              Sam&apos;s Pets 🐾
+            </h1>
+            <p className="text-sm" style={{ color: '#6B6B6B' }}>Panel de Gestión</p>
           </div>
           <div className="flex items-center gap-3">
             <button
+              onClick={fetchAppointments}
+              className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-[#F8F7F4] transition-colors text-lg"
+              title="Refrescar"
+            >
+              🔄
+            </button>
+            <button
               onClick={() => setShowNewAppointment(true)}
-              className="px-4 py-2 bg-[--azul-principal] text-white text-sm font-medium rounded-full hover:bg-[--azul-oscuro] transition-colors"
+              className="px-5 py-2.5 text-white text-sm font-semibold rounded-xl transition-colors"
+              style={{ backgroundColor: '#E8943D' }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#D4832F')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#E8943D')}
             >
               + Nueva Cita
             </button>
-            <button onClick={fetchAppointments} className="text-sm text-[--azul-principal] hover:underline">🔄</button>
-            <a href="/" className="text-sm text-[--azul-principal] hover:underline">Ver tienda</a>
           </div>
         </div>
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-6">
         {error && (
-          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-xl text-sm text-yellow-700">⚠️ {error}</div>
+          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-xl text-sm text-yellow-700">
+            ⚠️ {error}
+          </div>
         )}
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-6 mb-6">
-          <StatsCard title="Total" value={stats.total} icon="📊" color="blue" />
-          <StatsCard title="Pendientes" value={stats.pending} icon="⏳" color="yellow" />
-          <StatsCard title="Confirmadas" value={stats.confirmed} icon="✓" color="blue" />
-          <StatsCard title="Completadas" value={stats.completed} icon="✅" color="green" />
-          <StatsCard title="Canceladas" value={stats.cancelled} icon="❌" color="red" />
+        {/* Stats del día - Banner horizontal */}
+        <div
+          className="rounded-2xl p-4 mb-6 border"
+          style={{ backgroundColor: '#FFF4EA', borderColor: '#E8943D' }}
+        >
+          {todayStats.total === 0 ? (
+            <p className="text-center font-medium" style={{ color: '#1B3A5C' }}>
+              Sin citas para hoy 🌟
+            </p>
+          ) : (
+            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm font-medium" style={{ color: '#1B3A5C' }}>
+              <span className="capitalize">{todayFormatted}</span>
+              <span className="hidden sm:inline" style={{ color: '#E5E3DE' }}>|</span>
+              <span>{todayStats.total} citas programadas</span>
+              <span className="hidden sm:inline" style={{ color: '#E5E3DE' }}>|</span>
+              <span>{todayStats.pending} por confirmar</span>
+              <span className="hidden sm:inline" style={{ color: '#E5E3DE' }}>|</span>
+              <span>{todayStats.completed} completadas</span>
+            </div>
+          )}
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-6 sm:items-center sm:justify-between mb-6">
-          <div className="flex bg-white rounded-full p-1 shadow-sm">
+        {/* Tabs de navegación */}
+        <div className="flex gap-1 mb-6 border-b" style={{ borderColor: '#E5E3DE' }}>
+          {tabs.map((tab) => (
             <button
-              onClick={() => setViewMode('list')}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${viewMode === 'list' ? 'bg-[--azul-principal] text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+              key={tab.key}
+              onClick={() => setViewMode(tab.key)}
+              className="px-4 py-2.5 text-sm font-medium rounded-t-xl transition-colors whitespace-nowrap"
+              style={{
+                backgroundColor: viewMode === tab.key ? '#E8943D' : 'transparent',
+                color: viewMode === tab.key ? '#FFFFFF' : '#6B6B6B',
+              }}
+              onMouseEnter={(e) => {
+                if (viewMode !== tab.key) e.currentTarget.style.backgroundColor = '#F8F7F4';
+              }}
+              onMouseLeave={(e) => {
+                if (viewMode !== tab.key) e.currentTarget.style.backgroundColor = 'transparent';
+              }}
             >
-              📋 Lista
+              {tab.emoji} {tab.label}
             </button>
-            <button
-              onClick={() => setViewMode('today')}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${viewMode === 'today' ? 'bg-[--azul-principal] text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-            >
-              🐕 Hoy
-            </button>
-            <button
-              onClick={() => setViewMode('calendar')}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${viewMode === 'calendar' ? 'bg-[--azul-principal] text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-            >
-              📅 Calendario
-            </button>
-          </div>
-
-          <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0">
-            {(['all', 'pendiente', 'confirmada', 'completada', 'cancelada'] as const).map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${filter === f ? 'bg-[--azul-principal] text-white' : 'bg-white text-[--gris] hover:bg-gray-100'}`}
-              >
-                {f === 'all' ? 'Todas' : f.charAt(0).toUpperCase() + f.slice(1)}
-              </button>
-            ))}
-          </div>
+          ))}
         </div>
 
-        {viewMode === 'list' ? (
-          <AppointmentList
-            appointments={filteredAppointments}
-            onStatusChange={handleStatusChange}
-            onCancel={handleCancel}
-            onReschedule={handleReschedule}
-          />
-        ) : viewMode === 'today' ? (
+        {/* Content */}
+        {viewMode === 'today' && (
           <TodayView
-            appointments={filteredAppointments}
+            appointments={appointments}
             onStatusChange={handleStatusChange}
             onCancel={handleCancel}
             onReschedule={handleReschedule}
+            onNewAppointment={() => setShowNewAppointment(true)}
           />
-        ) : (
-          <div className="bg-white rounded-2xl p-4 shadow-md">
+        )}
+
+        {viewMode === 'upcoming' && (
+          <div>
+            {upcomingGrouped.length === 0 ? (
+              <div className="bg-white rounded-2xl p-8 text-center shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+                <div className="text-5xl mb-4">📅</div>
+                <p className="text-lg font-medium" style={{ color: '#1B3A5C' }}>No hay citas próximas</p>
+                <p className="text-sm mt-1" style={{ color: '#6B6B6B' }}>Los próximos 7 días están libres</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {upcomingGrouped.map(([dateStr, apts]) => (
+                  <div key={dateStr}>
+                    <h3 className="text-base font-semibold mb-3 capitalize" style={{ color: '#1B3A5C' }}>
+                      {formatDateLabel(dateStr)}
+                    </h3>
+                    <AppointmentList
+                      appointments={apts}
+                      onStatusChange={handleStatusChange}
+                      onCancel={handleCancel}
+                      onReschedule={handleReschedule}
+                      compact
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {viewMode === 'calendar' && (
+          <div className="bg-white rounded-2xl p-4 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
             <DayView
-              appointments={filteredAppointments}
+              appointments={appointments}
               onCancel={handleCancel}
               onReschedule={handleReschedule}
               onStatusChange={handleStatusChange}
@@ -247,10 +346,50 @@ export default function AdminPage() {
           </div>
         )}
 
-        <div className="mt-8 p-4 bg-green-50 rounded-xl">
-          <h3 className="font-medium text-[--azul-oscuro] mb-2">ℹ️ Información</h3>
-          <p className="text-sm text-[--gris]">Las citas se almacenan en Supabase. Accede desde cualquier dispositivo.</p>
-        </div>
+        {viewMode === 'all' && (
+          <div>
+            {/* Filter chips */}
+            <div className="flex gap-2 overflow-x-auto pb-4 mb-4">
+              {(['all', 'pendiente', 'confirmada', 'completada', 'cancelada'] as const).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setHistoryFilter(f)}
+                  className="px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors"
+                  style={{
+                    backgroundColor: historyFilter === f ? '#E8943D' : '#FFFFFF',
+                    color: historyFilter === f ? '#FFFFFF' : '#6B6B6B',
+                    border: historyFilter === f ? 'none' : '1px solid #E5E3DE',
+                  }}
+                >
+                  {f === 'all' ? 'Todas' : f.charAt(0).toUpperCase() + f.slice(1) + 's'}
+                </button>
+              ))}
+            </div>
+
+            {historyGrouped.length === 0 ? (
+              <div className="bg-white rounded-2xl p-8 text-center shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+                <div className="text-5xl mb-4">📋</div>
+                <p className="text-lg font-medium" style={{ color: '#1B3A5C' }}>No hay citas registradas</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {historyGrouped.map(([dateStr, apts]) => (
+                  <div key={dateStr}>
+                    <h3 className="text-sm font-semibold mb-3 capitalize" style={{ color: '#6B6B6B' }}>
+                      {formatDateLabel(dateStr)}
+                    </h3>
+                    <AppointmentList
+                      appointments={apts}
+                      onStatusChange={handleStatusChange}
+                      onCancel={handleCancel}
+                      onReschedule={handleReschedule}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </main>
 
       <NewAppointmentModal
