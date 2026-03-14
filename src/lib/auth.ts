@@ -4,7 +4,7 @@ const STORAGE_KEY = 'sams_pets_auth';
 
 const USERS: Record<string, { password: string; user: User }> = {
   admin: {
-    password: process.env.ADMIN_PASSWORD || '',
+    password: process.env.NEXT_PUBLIC_ADMIN_PASSWORD || '',
     user: {
       username: 'admin',
       role: 'ADMINISTRADOR_GENERAL',
@@ -12,7 +12,7 @@ const USERS: Record<string, { password: string; user: User }> = {
     }
   },
   staff: {
-    password: process.env.STAFF_PASSWORD || '',
+    password: process.env.NEXT_PUBLIC_STAFF_PASSWORD || '',
     user: {
       username: 'staff',
       role: 'ADMINISTRATIVO',
