@@ -2,7 +2,6 @@
 
 import { useMemo } from 'react';
 import { Appointment, AppointmentStatus } from '@/types/appointment';
-import { generateWhatsAppReminder } from '@/lib/whatsapp';
 import { format, isToday, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -11,6 +10,7 @@ interface TodayViewProps {
   onStatusChange: (id: string, status: AppointmentStatus) => void;
   onCancel: (id: string) => void;
   onReschedule: (appointment: Appointment) => void;
+  onDelete?: (id: string) => void;
   onNewAppointment: () => void;
 }
 
@@ -45,7 +45,7 @@ const getDuration = (apt: Appointment) => {
 const formatDuration = (min: number) =>
   min >= 60 ? `${Math.floor(min / 60)}h ${min % 60 > 0 ? min % 60 + 'min' : ''}`.trim() : `${min}min`;
 
-export default function TodayView({ appointments, onStatusChange, onCancel, onReschedule, onNewAppointment }: TodayViewProps) {
+export default function TodayView({ appointments, onStatusChange, onCancel, onReschedule, onDelete, onNewAppointment }: TodayViewProps) {
   const todayAppointments = useMemo(() => {
     return appointments
       .filter((apt) => {
@@ -237,15 +237,22 @@ export default function TodayView({ appointments, onStatusChange, onCancel, onRe
                           >
                             ❌ Cancelar
                           </button>
-                          <button
-                            onClick={() => window.open(generateWhatsAppReminder(appointment), '_blank')}
-                            className="py-2 px-2 text-xs font-medium rounded-xl transition-colors text-center"
-                            style={{ backgroundColor: '#F0FDF4', color: '#15803D' }}
-                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#DCFCE7')}
-                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#F0FDF4')}
-                          >
-                            📱 WhatsApp
-                          </button>
+                          {onDelete && (
+                            <button
+                              onClick={() => {
+                                const name = appointment.petName || appointment.pet_name || 'esta mascota';
+                                if (window.confirm(`¿Eliminar la cita de ${name}? Esta acción no se puede deshacer.`)) {
+                                  onDelete(appointment.id);
+                                }
+                              }}
+                              className="py-2 px-2 text-xs font-medium rounded-xl transition-colors text-center"
+                              style={{ backgroundColor: '#F3F4F6', color: '#6B7280' }}
+                              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#E5E7EB')}
+                              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#F3F4F6')}
+                            >
+                              🗑️ Eliminar
+                            </button>
+                          )}
                         </div>
                       </div>
                     )}

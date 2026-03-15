@@ -1,7 +1,6 @@
 'use client';
 
 import { Appointment, AppointmentStatus } from '@/types/appointment';
-import { generateWhatsAppReminder } from '@/lib/whatsapp';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -10,6 +9,7 @@ interface AppointmentListProps {
   onStatusChange: (id: string, status: AppointmentStatus) => void;
   onCancel?: (id: string) => void;
   onReschedule?: (appointment: Appointment) => void;
+  onDelete?: (id: string) => void;
   compact?: boolean;
 }
 
@@ -34,7 +34,7 @@ const statusLabels: Record<AppointmentStatus, string> = {
   cancelada: 'Cancelada',
 };
 
-export default function AppointmentList({ appointments, onStatusChange, onCancel, onReschedule, compact }: AppointmentListProps) {
+export default function AppointmentList({ appointments, onStatusChange, onCancel, onReschedule, onDelete, compact }: AppointmentListProps) {
   const formatDate = (dateStr: string) => {
     try {
       return format(new Date(dateStr + 'T12:00:00'), "EEEE d MMM", { locale: es });
@@ -193,15 +193,21 @@ export default function AppointmentList({ appointments, onStatusChange, onCancel
                       >
                         ❌ Cancelar
                       </button>
-                      <button
-                        onClick={() => window.open(generateWhatsAppReminder(appointment), '_blank')}
-                        className="py-1.5 px-2 text-xs font-medium rounded-xl transition-colors text-center"
-                        style={{ backgroundColor: '#F0FDF4', color: '#15803D' }}
-                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#DCFCE7')}
-                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#F0FDF4')}
-                      >
-                        📱 WhatsApp
-                      </button>
+                      {onDelete && (
+                        <button
+                          onClick={() => {
+                            if (window.confirm(`¿Eliminar la cita de ${petName}? Esta acción no se puede deshacer.`)) {
+                              onDelete(appointment.id);
+                            }
+                          }}
+                          className="py-1.5 px-2 text-xs font-medium rounded-xl transition-colors text-center"
+                          style={{ backgroundColor: '#F3F4F6', color: '#6B7280' }}
+                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#E5E7EB')}
+                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#F3F4F6')}
+                        >
+                          🗑️ Eliminar
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}

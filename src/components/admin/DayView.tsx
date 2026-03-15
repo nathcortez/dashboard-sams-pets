@@ -2,7 +2,6 @@
 
 import { useState, useMemo } from 'react';
 import { Appointment, AppointmentStatus } from '@/types/appointment';
-import { generateWhatsAppReminder } from '@/lib/whatsapp';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -10,6 +9,7 @@ interface DayViewProps {
   appointments: Appointment[];
   onCancel: (id: string) => void;
   onReschedule: (appointment: Appointment) => void;
+  onDelete?: (id: string) => void;
   onStatusChange: (id: string, status: AppointmentStatus) => void;
 }
 
@@ -34,7 +34,7 @@ const statusLabels: Record<AppointmentStatus, string> = {
   cancelada: 'Cancelada',
 };
 
-export default function DayView({ appointments, onCancel, onReschedule, onStatusChange }: DayViewProps) {
+export default function DayView({ appointments, onCancel, onReschedule, onDelete, onStatusChange }: DayViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
@@ -271,13 +271,20 @@ export default function DayView({ appointments, onCancel, onReschedule, onStatus
                       >
                         ❌ Cancelar
                       </button>
-                      <button
-                        onClick={() => window.open(generateWhatsAppReminder(appointment), '_blank')}
-                        className="py-1.5 px-3 text-xs font-medium rounded-xl transition-colors"
-                        style={{ backgroundColor: '#E8F5E9', color: '#4A7C59' }}
-                      >
-                        📱 Recordatorio
-                      </button>
+                      {onDelete && (
+                        <button
+                          onClick={() => {
+                            const name = appointment.petName || appointment.pet_name || 'esta mascota';
+                            if (window.confirm(`¿Eliminar la cita de ${name}? Esta acción no se puede deshacer.`)) {
+                              onDelete(appointment.id);
+                            }
+                          }}
+                          className="py-1.5 px-3 text-xs font-medium rounded-xl transition-colors"
+                          style={{ backgroundColor: '#F3F4F6', color: '#6B7280' }}
+                        >
+                          🗑️ Eliminar
+                        </button>
+                      )}
                     </div>
                   )}
 

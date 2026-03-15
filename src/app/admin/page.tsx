@@ -148,6 +148,16 @@ export default function AdminPage() {
     }
   };
 
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase.from('appointments').delete().eq('id', id);
+      if (error) throw error;
+      setAppointments((prev) => prev.filter((a) => a.id !== id));
+    } catch (err) {
+      console.error('Error eliminando cita:', err);
+    }
+  };
+
   const handleReschedule = (appointment: Appointment) => {
     setRescheduleAppointment(appointment);
   };
@@ -334,6 +344,7 @@ export default function AdminPage() {
             onStatusChange={handleStatusChange}
             onCancel={handleCancel}
             onReschedule={handleReschedule}
+            onDelete={handleDelete}
             onNewAppointment={() => setShowNewAppointment(true)}
           />
         )}
@@ -358,6 +369,7 @@ export default function AdminPage() {
                       onStatusChange={handleStatusChange}
                       onCancel={handleCancel}
                       onReschedule={handleReschedule}
+                      onDelete={handleDelete}
                       compact
                     />
                   </div>
@@ -373,6 +385,7 @@ export default function AdminPage() {
               appointments={appointments}
               onCancel={handleCancel}
               onReschedule={handleReschedule}
+              onDelete={handleDelete}
               onStatusChange={handleStatusChange}
             />
           </div>
@@ -419,6 +432,7 @@ export default function AdminPage() {
                       onStatusChange={handleStatusChange}
                       onCancel={handleCancel}
                       onReschedule={handleReschedule}
+                      onDelete={handleDelete}
                     />
                   </div>
                 ))}
