@@ -9,10 +9,11 @@ import TodayView from '@/components/admin/TodayView';
 import NewAppointmentModal from '@/components/admin/NewAppointmentModal';
 import RescheduleModal from '@/components/admin/RescheduleModal';
 import RemindersView from '@/components/admin/RemindersView';
+import ClientsView from '@/components/admin/ClientsView';
 import { format, isToday, parseISO, isAfter, isBefore, addDays, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-type ViewMode = 'today' | 'upcoming' | 'calendar' | 'all' | 'reminders';
+type ViewMode = 'today' | 'upcoming' | 'calendar' | 'all' | 'reminders' | 'clientes';
 
 export default function AdminPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -233,11 +234,12 @@ export default function AdminPage() {
   };
 
   const tabs: { key: ViewMode; label: string; emoji: string }[] = [
-    { key: 'today', label: 'Hoy', emoji: '🐕' },
-    { key: 'upcoming', label: 'Próximas', emoji: '📅' },
-    { key: 'calendar', label: 'Calendario', emoji: '🗓️' },
-    { key: 'all', label: 'Historial', emoji: '📋' },
-    { key: 'reminders', label: 'Recordatorios', emoji: '🔔' },
+    { key: 'today',     label: 'Hoy',            emoji: '🐕' },
+    { key: 'upcoming',  label: 'Próximas',        emoji: '📅' },
+    { key: 'calendar',  label: 'Calendario',      emoji: '🗓️' },
+    { key: 'all',       label: 'Historial',       emoji: '📋' },
+    { key: 'reminders', label: 'Recordatorios',   emoji: '🔔' },
+    { key: 'clientes',  label: 'Clientes',        emoji: '👥' },
   ];
 
   if (loading) {
@@ -393,6 +395,10 @@ export default function AdminPage() {
 
         {viewMode === 'reminders' && (
           <RemindersView />
+        )}
+
+        {viewMode === 'clientes' && (
+          <ClientsView />
         )}
 
         {viewMode === 'all' && (
