@@ -12,6 +12,64 @@ import Sidebar from '@/components/admin/Sidebar';
 
 type View = 'inicio' | 'agenda' | 'mascotas' | 'clientes' | 'servicios' | 'reportes' | 'configuracion';
 
+// ── Razas y duraciones sincronizadas con sams-pets-citas ────────────────────
+const SIZE_DURATION: Record<string, number> = {
+  pequeno: 30,
+  mediano: 60,
+  intermedio: 90,
+  grande: 120,
+};
+
+const SIZE_LABELS: Record<string, string> = {
+  pequeno: 'Pequeño (30 min)',
+  mediano: 'Mediano (60 min)',
+  intermedio: 'Intermedio (90 min)',
+  grande: 'Grande (120 min)',
+};
+
+const SIZE_BREEDS: Record<string, { name: string; emoji: string }[]> = {
+  pequeno: [
+    { name: 'Chihuahua', emoji: '🐕' },
+    { name: 'Cachorro', emoji: '🐶' },
+    { name: 'Mestizo', emoji: '🐕' },
+  ],
+  mediano: [
+    { name: 'French Poodle', emoji: '🐩' },
+    { name: 'Schnauzer', emoji: '🐕' },
+    { name: 'Yorkie', emoji: '🐶' },
+    { name: 'Pomerania', emoji: '🐕' },
+    { name: 'Mestizo', emoji: '🐕' },
+    { name: 'Maltés', emoji: '🐕' },
+    { name: 'Bulldog Francés', emoji: '🐶' },
+    { name: 'Pug', emoji: '🐕' },
+    { name: 'Shih Tzu', emoji: '🐕' },
+    { name: 'Bichón Frisé', emoji: '🐩' },
+    { name: 'Dachshund (Salchicha)', emoji: '🌭' },
+  ],
+  intermedio: [
+    { name: 'Cocker Spaniel', emoji: '🐕' },
+    { name: 'Beagle', emoji: '🐕' },
+    { name: 'Pitbull', emoji: '🐕' },
+    { name: 'Boston Terrier', emoji: '🐶' },
+    { name: 'Bulldog Inglés', emoji: '🐶' },
+    { name: 'Pastor Australiano', emoji: '🐕' },
+    { name: 'Jack Russell Terrier', emoji: '🐕' },
+  ],
+  grande: [
+    { name: 'Shar Pei', emoji: '🐕' },
+    { name: 'Pastor Alemán', emoji: '🐕' },
+    { name: 'Labrador', emoji: '🐕' },
+    { name: 'Golden Retriever', emoji: '🐕' },
+    { name: 'Husky', emoji: '🐕' },
+    { name: 'Dóberman', emoji: '🐕' },
+    { name: 'Boxer', emoji: '🐕' },
+    { name: 'San Bernardo', emoji: '🐕' },
+    { name: 'Rottweiler', emoji: '🐕' },
+    { name: 'Viejo Pastor Inglés', emoji: '🐕' },
+  ],
+};
+// ───────────────────────────────────────────────────────────────────────────
+
 interface Client {
   phone: string;
   name: string;
@@ -38,14 +96,16 @@ export default function Dashboard() {
 
   // Estado para servicios
   const [services, setServices] = useState([
-    { id: '1', name: 'Baño básico', description: 'Baño con shampoo, secado y cepillado', duration: 30, price: 100, emoji: '🛁', active: true },
-    { id: '2', name: 'Baño + Corte', description: 'Baño completo más corte de pelo al estilo de la raza', duration: 60, price: 150, emoji: '✂️', active: true },
-    { id: '3', name: 'Paquete completo', description: 'Baño + corte + uñas + oídos', duration: 105, price: 200, emoji: '⭐', active: true },
-    { id: '4', name: 'Recuperación de manto', description: 'Servicio adicional con costo extra', duration: 45, price: 80, emoji: '🧶', active: true, isAdditional: true },
+    { id: 'grooming', name: 'Grooming Completo', description: 'Baño, corte de pelo, uñas y oídos', duration: 60, price: 150, emoji: '✂️', active: true },
+    { id: 'recovery', name: 'Recuperación de manto', description: 'Servicio adicional para pelaje enredado o muy crecido', duration: 45, price: 80, emoji: '🧶', active: true, isAdditional: true },
   ]);
   const [serviceModal, setServiceModal] = useState<{ mode: 'add' | 'edit'; service?: typeof services[0] } | null>(null);
   const [newAppointmentModal, setNewAppointmentModal] = useState(false);
   const [editServiceModal, setEditServiceModal] = useState<{ appointment: Appointment; serviceId: string; additionalService: boolean; recoveryTime: number } | null>(null);
+
+  // Estado para selector de raza en nueva cita
+  const [newAptSize, setNewAptSize] = useState<string>('');
+  const [newAptBreed, setNewAptBreed] = useState<{ name: string; emoji: string } | null>(null);
 
   // Estado para configuracion
   const [config, setConfig] = useState({
@@ -1952,27 +2012,25 @@ export default function Dashboard() {
                 onSubmit={(e) => {
                   e.preventDefault();
                   const formData = new FormData(e.currentTarget);
-
-                  const selectedServiceId = formData.get('serviceId') as string;
-                  const selectedService = services.find(s => s.id === selectedServiceId);
-                  const additionalSvc = services.find(s => s.isAdditional);
-                  const isAdditional = formData.get('additionalService') === 'true';
+                  const isAdditional = (formData.get('additionalService') as string) === 'on';
+                  const recoveryDuration = services.find(s => s.isAdditional)?.duration || 45;
+                  const baseTime = SIZE_DURATION[newAptSize] || 60;
 
                   const newAppointment: Appointment = {
                     id: Date.now().toString(),
                     createdAt: new Date().toISOString(),
                     petName: formData.get('petName') as string,
-                    petSize: formData.get('petSize') as string,
-                    petBreed: formData.get('petBreed') as string,
-                    petBreedEmoji: formData.get('petBreedEmoji') as string || '🐕',
-                    serviceId: selectedServiceId,
-                    serviceName: selectedService?.name || 'Baño y corte',
-                    baseTimeMinutes: selectedService?.duration || 45,
+                    petSize: newAptSize,
+                    petBreed: newAptBreed?.name || (formData.get('customBreed') as string) || '',
+                    petBreedEmoji: newAptBreed?.emoji || '🐕',
+                    serviceId: 'grooming',
+                    serviceName: 'Grooming Completo',
+                    baseTimeMinutes: baseTime,
                     ownerName: formData.get('ownerName') as string,
                     whatsapp: formData.get('whatsapp') as string,
                     comments: formData.get('comments') as string,
                     additionalService: isAdditional,
-                    recoveryTime: isAdditional ? (additionalSvc?.duration || 45) : 0,
+                    recoveryTime: isAdditional ? recoveryDuration : 0,
                     date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : todayStr,
                     time: formData.get('time') as string,
                     status: 'pendiente',
@@ -1980,88 +2038,123 @@ export default function Dashboard() {
 
                   setAppointments([...appointments, newAppointment]);
                   setNewAppointmentModal(false);
+                  setNewAptSize('');
+                  setNewAptBreed(null);
                 }}
                 className="p-6 space-y-4"
               >
+                {/* ── 1. Datos de la mascota ── */}
                 <div className="border-b pb-4">
                   <h4 className="text-sm font-semibold text-gray-700 mb-3">Datos de la Mascota</h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="col-span-2">
+                  <div className="space-y-3">
+                    <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Nombre de la mascota</label>
                       <input name="petName" required className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E8943D] text-sm" placeholder="Nombre" />
                     </div>
+
+                    {/* Selector de tamaño */}
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Tamaño</label>
-                      <select name="petSize" required className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E8943D] text-sm">
-                        <option value="">Seleccionar</option>
-                        <option value="pequeño">Pequeño</option>
-                        <option value="mediano">Mediano</option>
-                        <option value="grande">Grande</option>
-                        <option value="gigante">Gigante</option>
-                      </select>
+                      <label className="block text-xs font-medium text-gray-600 mb-2">Tamaño</label>
+                      <div className="grid grid-cols-4 gap-2">
+                        {(['pequeno', 'mediano', 'intermedio', 'grande'] as const).map((size) => (
+                          <button
+                            key={size}
+                            type="button"
+                            onClick={() => { setNewAptSize(size); setNewAptBreed(null); }}
+                            className={`py-2 px-1 rounded-lg border text-xs font-medium transition-all text-center ${
+                              newAptSize === size
+                                ? 'bg-[#E8943D] text-white border-[#E8943D]'
+                                : 'bg-white text-gray-600 border-gray-200 hover:border-[#E8943D]'
+                            }`}
+                          >
+                            {size === 'pequeno' ? 'Pequeño' : size === 'mediano' ? 'Mediano' : size === 'intermedio' ? 'Intermedio' : 'Grande'}
+                            <span className="block text-[10px] opacity-70">{SIZE_DURATION[size]} min</span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Raza/Emoji</label>
-                      <select name="petBreedEmoji" className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E8943D] text-sm">
-                        <option value="🐕">🐕 Perro</option>
-                        <option value="🐩">🐩 Poodle</option>
-                        <option value="🐶">🐶 Cachorro</option>
-                        <option value="🐕‍🦺">🐕‍🦺 Alaska</option>
-                        <option value="🐾">🐾 Gato</option>
-                        <option value="🐈">🐈 Gato</option>
-                      </select>
-                    </div>
-                    <div className="col-span-2">
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Raza/Edad (opcional)</label>
-                      <input name="petBreed" className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E8943D] text-sm" placeholder="Ej: Golden Retriever, 3 años" />
-                    </div>
+
+                    {/* Lista de razas del tamaño seleccionado */}
+                    {newAptSize && (
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-2">
+                          Raza {newAptBreed && <span className="text-[#E8943D]">· {newAptBreed.emoji} {newAptBreed.name}</span>}
+                        </label>
+                        <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto">
+                          {SIZE_BREEDS[newAptSize].map((breed) => (
+                            <button
+                              key={breed.name}
+                              type="button"
+                              onClick={() => setNewAptBreed(breed)}
+                              className={`px-2.5 py-1 rounded-full text-xs border transition-all ${
+                                newAptBreed?.name === breed.name
+                                  ? 'bg-[#E8943D] text-white border-[#E8943D]'
+                                  : 'bg-white text-gray-600 border-gray-200 hover:border-[#E8943D]'
+                              }`}
+                            >
+                              {breed.emoji} {breed.name}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="mt-2">
+                          <input
+                            name="customBreed"
+                            className="w-full px-3 py-1.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E8943D] text-xs text-gray-500"
+                            placeholder="O escribe la raza manualmente..."
+                            onChange={(e) => { if (e.target.value) setNewAptBreed(null); }}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
+                {/* ── 2. Servicio ── */}
                 <div className="border-b pb-4">
-                  <h4 className="text-sm font-semibold text-gray-700 mb-3">Servicio principal</h4>
-                  <div className="space-y-2">
-                    {services.filter(s => s.active && !s.isAdditional).map(service => (
-                      <label key={service.id} className="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-[#FAFAF8]">
-                        <div className="flex items-center gap-3">
-                          <input type="radio" name="serviceId" value={service.id} defaultChecked={services.filter(s => s.active && !s.isAdditional)[0]?.id === service.id} required className="text-[#E8943D]" />
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3">Servicio</h4>
+                  <div className="p-3 bg-[#FFF8F2] border border-[#E8943D]/40 rounded-lg flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold text-sm text-gray-800">✂️ Grooming Completo</p>
+                      <p className="text-xs text-gray-500">Baño, corte, uñas y oídos</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-[#E8943D]">
+                        {newAptSize ? `${SIZE_DURATION[newAptSize]} min` : '— min'}
+                      </p>
+                      {!newAptSize && <p className="text-xs text-gray-400">Selecciona tamaño</p>}
+                    </div>
+                  </div>
+                  {services.find(s => s.isAdditional && s.active) && (
+                    <div className="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                      <label className="flex items-center justify-between cursor-pointer">
+                        <div className="flex items-center gap-2">
+                          <input type="checkbox" name="additionalService" className="rounded text-purple-600" />
                           <div>
-                            <p className="font-medium text-sm">{service.emoji} {service.name}</p>
-                            <p className="text-xs text-gray-500">{service.duration} min • Q{service.price}</p>
+                            <span className="text-sm font-medium text-purple-700">🧶 Recuperación de manto</span>
+                            <p className="text-xs text-purple-500">Para pelaje muy enredado o crecido</p>
                           </div>
                         </div>
-                      </label>
-                    ))}
-                  </div>
-
-                  {/* Recuperación de manto como checkbox separado */}
-                  {services.find(s => s.isAdditional && s.active) && (
-                    <div className="mt-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                      <label className="flex items-center gap-2">
-                        <input type="checkbox" name="additionalService" value="true" className="rounded text-purple-600" />
-                        <span className="text-sm font-medium text-purple-700">{services.find(s => s.isAdditional)?.emoji} {services.find(s => s.isAdditional)?.name}</span>
-                        <span className="text-xs text-purple-600">+{services.find(s => s.isAdditional)?.duration} min</span>
+                        <span className="text-xs font-semibold text-purple-600">+45 min</span>
                       </label>
                     </div>
                   )}
                 </div>
 
+                {/* ── 3. Hora ── */}
                 <div className="border-b pb-4">
-                  <h4 className="text-sm font-semibold text-gray-700 mb-3">Fecha y Hora</h4>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Hora disponible</label>
-                    <select name="time" required className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E8943D] text-sm">
-                      <option value="">Seleccionar hora</option>
-                      {TIME_SLOTS.filter(time => {
-                        const dateKey = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : todayStr;
-                        return !appointments.some(a => a.date === dateKey && a.time === time && a.status !== 'cancelada');
-                      }).map(time => (
-                        <option key={time} value={time}>{time}</option>
-                      ))}
-                    </select>
-                  </div>
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3">Hora</h4>
+                  <select name="time" required className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E8943D] text-sm">
+                    <option value="">Seleccionar hora disponible</option>
+                    {TIME_SLOTS.filter(time => {
+                      const dateKey = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : todayStr;
+                      return !appointments.some(a => a.date === dateKey && a.time === time && a.status !== 'cancelada');
+                    }).map(time => (
+                      <option key={time} value={time}>{time}</option>
+                    ))}
+                  </select>
                 </div>
 
+                {/* ── 4. Cliente ── */}
                 <div className="border-b pb-4">
                   <h4 className="text-sm font-semibold text-gray-700 mb-3">Datos del Cliente</h4>
                   <div className="space-y-3">
@@ -2079,14 +2172,27 @@ export default function Dashboard() {
                   </div>
                 </div>
 
+                {/* ── 5. Notas ── */}
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Notas (opcional)</label>
                   <textarea name="comments" rows={2} className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E8943D] text-sm" placeholder="Notas especiales..." />
                 </div>
 
                 <div className="flex gap-3 pt-2">
-                  <button type="button" onClick={() => setNewAppointmentModal(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-[#FAFAF8] transition-colors">Cancelar</button>
-                  <button type="submit" className="flex-1 px-4 py-2 bg-[#E8943D] hover:bg-[#E8943D]/90 text-white rounded-lg transition-colors">Crear Cita</button>
+                  <button
+                    type="button"
+                    onClick={() => { setNewAppointmentModal(false); setNewAptSize(''); setNewAptBreed(null); }}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-[#FAFAF8] transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={!newAptSize}
+                    className="flex-1 px-4 py-2 bg-[#E8943D] hover:bg-[#E8943D]/90 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Crear Cita
+                  </button>
                 </div>
               </form>
             </div>
