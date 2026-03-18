@@ -368,7 +368,6 @@ export default function RemindersView() {
   };
 
   const tabs: { key: ReminderTab; label: string; emoji: string }[] = [
-    { key: 'upcoming', label: 'Próxima cita', emoji: '📅' },
     { key: 'grooming', label: 'Grooming', emoji: '🐾' },
     { key: 'vaccine', label: 'Vacunas', emoji: '💉' },
     { key: 'deworming', label: 'Desparasitación', emoji: '💊' },

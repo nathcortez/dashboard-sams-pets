@@ -9,8 +9,9 @@ import { es } from 'date-fns/locale';
 import { logout, getSession } from '@/lib/auth';
 import { User, PERMISSIONS, Permission } from '@/types/auth';
 import Sidebar from '@/components/admin/Sidebar';
+import RemindersView from '@/components/admin/RemindersView';
 
-type View = 'inicio' | 'agenda' | 'mascotas' | 'clientes' | 'servicios' | 'reportes' | 'configuracion';
+type View = 'inicio' | 'agenda' | 'mascotas' | 'clientes' | 'servicios' | 'recordatorios' | 'reportes' | 'configuracion';
 
 // ── Razas y duraciones sincronizadas con sams-pets-citas ────────────────────
 const SIZE_DURATION: Record<string, number> = {
@@ -1831,6 +1832,7 @@ export default function Dashboard() {
               {currentView === 'mascotas' && 'Mascotas'}
               {currentView === 'clientes' && 'Clientes'}
               {currentView === 'servicios' && 'Servicios'}
+              {currentView === 'recordatorios' && 'Recordatorios'}
               {currentView === 'reportes' && 'Reportes'}
               {currentView === 'configuracion' && 'Configuración'}
             </h1>
@@ -1997,6 +1999,7 @@ export default function Dashboard() {
           {currentView === 'mascotas' && renderPetsView()}
           {currentView === 'reportes' && canViewReports && renderReportsView()}
           {currentView === 'servicios' && canViewReports && renderServicesView()}
+          {currentView === 'recordatorios' && <RemindersView />}
           {currentView === 'configuracion' && canViewReports && renderConfigView()}
         </main>
 

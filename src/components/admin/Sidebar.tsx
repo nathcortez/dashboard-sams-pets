@@ -17,6 +17,7 @@ const MENU_ITEMS = [
   { id: 'mascotas', name: 'Mascotas', icon: '🐕' },
   { id: 'clientes', name: 'Clientes', icon: '👥' },
   { id: 'servicios', name: 'Servicios', icon: '✂️' },
+  { id: 'recordatorios', name: 'Recordatorios', icon: '🔔' },
   { id: 'reportes', name: 'Reportes', icon: '📊' },
   { id: 'configuracion', name: 'Configuración', icon: '⚙️' },
 ];
