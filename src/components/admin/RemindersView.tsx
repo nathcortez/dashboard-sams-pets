@@ -93,6 +93,7 @@ export default function RemindersView() {
     notes: '',
   });
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const fetchGroomingReminders = useCallback(async () => {
     setLoading(true);
@@ -310,9 +311,10 @@ export default function RemindersView() {
   const handleAddHealth = async () => {
     if (!formData.ownerName || !formData.clientWhatsapp || !formData.petName || !formData.lastDate) return;
     setSaving(true);
+    setSaveError(null);
     try {
       const nextDate = format(addDays(parseISO(formData.lastDate), formData.intervalDays), 'yyyy-MM-dd');
-      await supabase.from('pet_health').insert({
+      const { error } = await supabase.from('pet_health').insert({
         client_whatsapp: formData.clientWhatsapp,
         owner_name: formData.ownerName,
         pet_name: formData.petName,
@@ -322,11 +324,18 @@ export default function RemindersView() {
         interval_days: formData.intervalDays,
         notes: formData.notes || null,
       });
+      if (error) throw error;
       setShowAddForm(false);
-      setFormData({ ownerName: '', clientWhatsapp: '', petName: '', lastDate: '', intervalDays: activeTab === 'vaccine' ? 365 : 90, notes: '' });
+      setFormData({ ownerName: '', clientWhatsapp: '', petName: '', lastDate: '', intervalDays: activeTab === 'vaccine' ? 365 : activeTab === 'deworming' ? 90 : 30, notes: '' });
       fetchHealthReminders(activeTab as 'vaccine' | 'deworming' | 'flea');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error adding health record:', err);
+      const msg = err?.message || err?.details || '';
+      if (msg.includes('does not exist') || msg.includes('relation')) {
+        setSaveError('La tabla aún no existe en Supabase. Corre el SQL que te compartió Joaqui para crearla.');
+      } else {
+        setSaveError(msg || 'Error al guardar. Intenta de nuevo.');
+      }
     } finally {
       setSaving(false);
     }
@@ -711,6 +720,12 @@ export default function RemindersView() {
                       {!formData.petName && ' Nombre de la mascota,'}
                       {!formData.lastDate && ' Fecha de última aplicación'}
                     </p>
+                  )}
+
+                  {saveError && (
+                    <div className="mt-3 p-3 rounded-xl text-xs" style={{ backgroundColor: '#FEF2F2', color: '#DC2626' }}>
+                      ⚠️ {saveError}
+                    </div>
                   )}
 
                   <div className="flex gap-2 mt-3">
