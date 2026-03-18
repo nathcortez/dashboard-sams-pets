@@ -623,46 +623,54 @@ export default function RemindersView() {
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs font-medium block mb-1" style={{ color: '#6B6B6B' }}>Nombre del dueño</label>
+                      <label className="text-xs font-medium block mb-1" style={{ color: '#6B6B6B' }}>
+                        Nombre del dueño <span style={{ color: '#DC2626' }}>*</span>
+                      </label>
                       <input
                         type="text"
                         value={formData.ownerName}
                         onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
                         className="w-full px-3 py-2 text-sm rounded-lg border"
-                        style={{ borderColor: '#E5E3DE' }}
+                        style={{ borderColor: formData.ownerName ? '#4A7C59' : '#E5E3DE' }}
                         placeholder="Ej: María López"
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-medium block mb-1" style={{ color: '#6B6B6B' }}>WhatsApp</label>
+                      <label className="text-xs font-medium block mb-1" style={{ color: '#6B6B6B' }}>
+                        WhatsApp <span style={{ color: '#DC2626' }}>*</span>
+                      </label>
                       <input
                         type="text"
                         value={formData.clientWhatsapp}
                         onChange={(e) => setFormData({ ...formData, clientWhatsapp: e.target.value })}
                         className="w-full px-3 py-2 text-sm rounded-lg border"
-                        style={{ borderColor: '#E5E3DE' }}
+                        style={{ borderColor: formData.clientWhatsapp ? '#4A7C59' : '#E5E3DE' }}
                         placeholder="Ej: +502 1234-5678"
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-medium block mb-1" style={{ color: '#6B6B6B' }}>Mascota</label>
+                      <label className="text-xs font-medium block mb-1" style={{ color: '#6B6B6B' }}>
+                        Nombre de la mascota <span style={{ color: '#DC2626' }}>*</span>
+                      </label>
                       <input
                         type="text"
                         value={formData.petName}
                         onChange={(e) => setFormData({ ...formData, petName: e.target.value })}
                         className="w-full px-3 py-2 text-sm rounded-lg border"
-                        style={{ borderColor: '#E5E3DE' }}
+                        style={{ borderColor: formData.petName ? '#4A7C59' : '#E5E3DE' }}
                         placeholder="Ej: Max"
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-medium block mb-1" style={{ color: '#6B6B6B' }}>Fecha de última aplicación</label>
+                      <label className="text-xs font-medium block mb-1" style={{ color: '#6B6B6B' }}>
+                        Fecha de última aplicación <span style={{ color: '#DC2626' }}>*</span>
+                      </label>
                       <input
                         type="date"
                         value={formData.lastDate}
                         onChange={(e) => setFormData({ ...formData, lastDate: e.target.value })}
                         className="w-full px-3 py-2 text-sm rounded-lg border"
-                        style={{ borderColor: '#E5E3DE' }}
+                        style={{ borderColor: formData.lastDate ? '#4A7C59' : '#E5E3DE' }}
                       />
                     </div>
                     <div>
@@ -693,16 +701,28 @@ export default function RemindersView() {
                       />
                     </div>
                   </div>
-                  <div className="flex gap-2 mt-4">
+
+                  {/* Mensaje de campos faltantes */}
+                  {(!formData.ownerName || !formData.clientWhatsapp || !formData.petName || !formData.lastDate) && (
+                    <p className="text-xs mt-3 px-1" style={{ color: '#DC2626' }}>
+                      ⚠️ Completa los campos marcados con <strong>*</strong> para guardar:
+                      {!formData.ownerName && ' Nombre del dueño,'}
+                      {!formData.clientWhatsapp && ' WhatsApp,'}
+                      {!formData.petName && ' Nombre de la mascota,'}
+                      {!formData.lastDate && ' Fecha de última aplicación'}
+                    </p>
+                  )}
+
+                  <div className="flex gap-2 mt-3">
                     <button
                       onClick={handleAddHealth}
                       disabled={saving || !formData.ownerName || !formData.clientWhatsapp || !formData.petName || !formData.lastDate}
-                      className="px-5 py-2 text-sm font-semibold rounded-xl text-white transition-colors disabled:opacity-50"
+                      className="px-5 py-2 text-sm font-semibold rounded-xl text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       style={{ backgroundColor: '#4A7C59' }}
-                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#3D6A4B')}
-                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#4A7C59')}
+                      onMouseEnter={(e) => { if (!saving) e.currentTarget.style.backgroundColor = '#3D6A4B'; }}
+                      onMouseLeave={(e) => { if (!saving) e.currentTarget.style.backgroundColor = '#4A7C59'; }}
                     >
-                      {saving ? 'Guardando...' : 'Guardar'}
+                      {saving ? 'Guardando...' : '💾 Guardar'}
                     </button>
                     <button
                       onClick={() => setShowAddForm(false)}
