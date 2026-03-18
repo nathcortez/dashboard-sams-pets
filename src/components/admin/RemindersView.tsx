@@ -68,7 +68,7 @@ const formatPhone = (phone: string) => phone.replace(/[^0-9]/g, '');
 export default function RemindersView() {
   const [activeTab, setActiveTab] = useState<ReminderTab>('grooming');
   const [loading, setLoading] = useState(true);
-  const [intervalDays, setIntervalDays] = useState(30);
+  const [intervalDays, setIntervalDays] = useState(15);
 
   // Grooming state
   const [groomingReminders, setGroomingReminders] = useState<GroomingReminder[]>([]);
@@ -415,31 +415,35 @@ export default function RemindersView() {
           {activeTab === 'grooming' && (
             <div>
               {/* Interval config */}
-              <div className="flex items-center gap-3 mb-4 bg-white rounded-xl p-3 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
-                <span className="text-sm font-medium" style={{ color: '#1B3A5C' }}>Recordar cada</span>
-                <input
-                  type="number"
-                  value={intervalDays}
-                  onChange={(e) => setIntervalDays(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="w-16 px-2 py-1 text-sm text-center rounded-lg border"
-                  style={{ borderColor: '#E5E3DE', color: '#1B3A5C' }}
-                  min={1}
-                />
-                <span className="text-sm" style={{ color: '#6B6B6B' }}>días</span>
-                <button
-                  onClick={fetchGroomingReminders}
-                  className="ml-auto px-3 py-1 text-xs font-medium rounded-lg transition-colors"
-                  style={{ backgroundColor: '#F3F4F6', color: '#6B6B6B' }}
-                >
-                  🔄 Actualizar
-                </button>
+              <div className="bg-white rounded-xl p-3 mb-2 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+                <p className="text-xs mb-2" style={{ color: '#6B6B6B' }}>
+                  Muestra perros que no han venido en los ultimos X dias. Puedes cambiar el numero.
+                </p>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-medium" style={{ color: '#1B3A5C' }}>Sin visita hace mas de</span>
+                  <input
+                    type="number"
+                    value={intervalDays}
+                    onChange={(e) => setIntervalDays(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="w-16 px-2 py-1 text-sm text-center rounded-lg border"
+                    style={{ borderColor: '#E5E3DE', color: '#1B3A5C' }}
+                    min={1}
+                  />
+                  <span className="text-sm" style={{ color: '#6B6B6B' }}>dias</span>
+                  <button
+                    onClick={fetchGroomingReminders}
+                    className="ml-auto px-3 py-1 text-xs font-medium rounded-lg transition-colors"
+                    style={{ backgroundColor: '#E8943D', color: '#FFFFFF' }}
+                  >
+                    Buscar
+                  </button>
+                </div>
               </div>
 
               {groomingReminders.length === 0 ? (
                 <div className="bg-white rounded-2xl p-8 text-center shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
-                  <div className="text-5xl mb-4">✨</div>
-                  <p className="text-lg font-medium" style={{ color: '#1B3A5C' }}>¡Todas las mascotas están al día!</p>
-                  <p className="text-sm mt-1" style={{ color: '#6B6B6B' }}>No hay mascotas con más de {intervalDays} días sin visita</p>
+                  <p className="text-lg font-medium" style={{ color: '#1B3A5C' }}>Todas las mascotas estan al dia</p>
+                  <p className="text-sm mt-1" style={{ color: '#6B6B6B' }}>Ningun perro lleva mas de {intervalDays} dias sin visita</p>
                 </div>
               ) : (
                 <div className="space-y-3">
