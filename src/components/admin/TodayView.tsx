@@ -1,9 +1,23 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Appointment, AppointmentStatus } from '@/types/appointment';
 import { format, isToday, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+import GroomingReportModal from './GroomingReportModal';
+
+const GROOMING_STATUS_LABELS: Record<string, { label: string; emoji: string; color: string; bg: string }> = {
+  excelente:       { label: 'Excelente',       emoji: '⭐', color: '#15803D', bg: '#F0FDF4' },
+  bueno:           { label: 'Bueno',           emoji: '✅', color: '#1D4ED8', bg: '#EFF6FF' },
+  regular:         { label: 'Regular',         emoji: '⚠️', color: '#D97706', bg: '#FFFBEB' },
+  con_incidencias: { label: 'Con incidencias', emoji: '🔴', color: '#DC2626', bg: '#FEF2F2' },
+};
+
+const GROOMING_TAG_LABELS: Record<string, string> = {
+  nudos: '🪢 Nudos', pulgas: '🦟 Pulgas', piel_irritada: '🔴 Piel irritada',
+  bajo_peso: '⚖️ Bajo de peso', alergia: '🤧 Alergia',
+  comportamiento: '😤 Comportamiento', oidos: '👂 Oídos', unas_largas: '🦴 Uñas largas',
+};
 
 interface TodayViewProps {
   appointments: Appointment[];
@@ -12,6 +26,7 @@ interface TodayViewProps {
   onReschedule: (appointment: Appointment) => void;
   onDelete?: (id: string) => void;
   onNewAppointment: () => void;
+  onRefresh?: () => void;
 }
 
 const borderColors: Record<AppointmentStatus, string> = {
@@ -45,7 +60,9 @@ const getDuration = (apt: Appointment) => {
 const formatDuration = (min: number) =>
   min >= 60 ? `${Math.floor(min / 60)}h ${min % 60 > 0 ? min % 60 + 'min' : ''}`.trim() : `${min}min`;
 
-export default function TodayView({ appointments, onStatusChange, onCancel, onReschedule, onDelete, onNewAppointment }: TodayViewProps) {
+export default function TodayView({ appointments, onStatusChange, onCancel, onReschedule, onDelete, onNewAppointment, onRefresh }: TodayViewProps) {
+  const [groomingReportApt, setGroomingReportApt] = useState<Appointment | null>(null);
+
   const todayAppointments = useMemo(() => {
     return appointments
       .filter((apt) => {
@@ -260,6 +277,52 @@ export default function TodayView({ appointments, onStatusChange, onCancel, onRe
                     {appointment.status === 'cancelada' && (
                       <p className="text-xs" style={{ color: '#EF4444' }}>Esta cita fue cancelada</p>
                     )}
+
+                    {/* Reporte post-grooming para citas completadas */}
+                    {appointment.status === 'completada' && (
+                      <div className="mt-1">
+                        {appointment.groomingStatus ? (
+                          <div className="rounded-xl p-3 space-y-1.5"
+                            style={{ backgroundColor: GROOMING_STATUS_LABELS[appointment.groomingStatus]?.bg || '#F9FAFB' }}>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-semibold"
+                                style={{ color: GROOMING_STATUS_LABELS[appointment.groomingStatus]?.color || '#6B7280' }}>
+                                {GROOMING_STATUS_LABELS[appointment.groomingStatus]?.emoji} Estado: {GROOMING_STATUS_LABELS[appointment.groomingStatus]?.label}
+                              </span>
+                              <button onClick={() => setGroomingReportApt(appointment)}
+                                className="text-xs underline" style={{ color: '#6B7280' }}>
+                                Editar
+                              </button>
+                            </div>
+                            {appointment.groomingTags && appointment.groomingTags.length > 0 && (
+                              <div className="flex flex-wrap gap-1">
+                                {appointment.groomingTags.map((t) => (
+                                  <span key={t} className="text-xs px-2 py-0.5 rounded-full bg-white"
+                                    style={{ color: '#6B7280' }}>
+                                    {GROOMING_TAG_LABELS[t] || t}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                            {appointment.groomingNotes && (
+                              <p className="text-xs italic" style={{ color: '#6B7280' }}>
+                                📝 {appointment.groomingNotes}
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setGroomingReportApt(appointment)}
+                            className="w-full py-2.5 px-4 text-sm font-semibold rounded-xl border-2 border-dashed transition-all"
+                            style={{ borderColor: '#E8943D', color: '#E8943D', backgroundColor: '#FFF9F5' }}
+                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#FFF4EA')}
+                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FFF9F5')}
+                          >
+                            ✂️ Registrar resultado del grooming
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -284,6 +347,16 @@ export default function TodayView({ appointments, onStatusChange, onCancel, onRe
             </div>
           </div>
         </>
+      )}
+
+      {/* Modal reporte post-grooming */}
+      {groomingReportApt && (
+        <GroomingReportModal
+          appointment={groomingReportApt}
+          isOpen={true}
+          onClose={() => setGroomingReportApt(null)}
+          onSuccess={() => { setGroomingReportApt(null); onRefresh?.(); }}
+        />
       )}
     </div>
   );

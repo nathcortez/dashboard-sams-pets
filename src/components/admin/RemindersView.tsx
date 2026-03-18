@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { GroomingReminder, HealthReminder, ReminderType } from '@/types/reminder';
+import { GroomingReminder, HealthReminder, UpcomingAppointmentReminder, ReminderType } from '@/types/reminder';
 import { differenceInDays, parseISO, format, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-type ReminderTab = 'grooming' | 'vaccine' | 'deworming';
+type ReminderTab = 'grooming' | 'vaccine' | 'deworming' | 'flea' | 'upcoming';
 
 const generateReminderMessage = (type: ReminderType, ownerName: string, petName: string, daysOrDate: number | string) => {
   if (type === 'grooming') {
@@ -35,6 +35,28 @@ Si necesitas más información, estamos aquí para ayudarte.
 _Sam's Pets — El Progreso, Jutiapa_
 📞 +502 4903-7428`;
   }
+  if (type === 'flea') {
+    return `¡Hola ${ownerName}! 🦟
+
+Te recordamos que *${petName}* tiene su próxima aplicación de *antipulgas* para el *${daysOrDate}*.
+
+Mantener a tu mascota libre de pulgas es clave para su bienestar. 🐕✨
+
+_Sam's Pets — El Progreso, Jutiapa_
+📞 +502 4903-7428`;
+  }
+  if (type === 'upcoming') {
+    return `¡Hola ${ownerName}! 📅
+
+Te recordamos que *${petName}* tiene una cita de grooming en Sam's Pets el *${daysOrDate}*.
+
+¡Te esperamos! ✂️🐾
+
+Si necesitas cambiar la cita, contáctanos:
+📞 +502 4903-7428
+
+_Sam's Pets — El Progreso, Jutiapa_`;
+  }
   return `¡Hola ${ownerName}! 💊
 
 Te recordamos que *${petName}* necesita su próxima *desparasitación* para el *${daysOrDate}*.
@@ -57,6 +79,10 @@ export default function RemindersView() {
 
   // Health state
   const [healthReminders, setHealthReminders] = useState<HealthReminder[]>([]);
+
+  // Upcoming appointments state
+  const [upcomingReminders, setUpcomingReminders] = useState<UpcomingAppointmentReminder[]>([]);
+  const [upcomingDays, setUpcomingDays] = useState(3);
   const [showAddForm, setShowAddForm] = useState(false);
   const [formData, setFormData] = useState({
     ownerName: '',
@@ -127,7 +153,62 @@ export default function RemindersView() {
     }
   }, [intervalDays]);
 
-  const fetchHealthReminders = useCallback(async (type: 'vaccine' | 'deworming') => {
+  const fetchUpcomingReminders = useCallback(async () => {
+    setLoading(true);
+    try {
+      const today = format(new Date(), 'yyyy-MM-dd');
+      const future = format(addDays(new Date(), upcomingDays), 'yyyy-MM-dd');
+
+      const { data } = await supabase
+        .from('appointments')
+        .select('id, pet_name, pet_breed, owner_name, whatsapp, date, time, status')
+        .gte('date', today)
+        .lte('date', future)
+        .neq('status', 'cancelada')
+        .neq('status', 'completada')
+        .order('date', { ascending: true })
+        .order('time', { ascending: true });
+
+      const { data: logs } = await supabase
+        .from('reminder_logs')
+        .select('id, client_whatsapp, pet_name, sent_at')
+        .eq('reminder_type', 'upcoming')
+        .order('sent_at', { ascending: false });
+
+      const logMap = new Map<string, { id: string; sentAt: string }>();
+      (logs || []).forEach((log) => {
+        const key = `${log.client_whatsapp}_${log.pet_name}`;
+        if (!logMap.has(key)) logMap.set(key, { id: log.id, sentAt: log.sent_at });
+      });
+
+      const reminders: UpcomingAppointmentReminder[] = (data || []).map((row: any) => {
+        const daysUntil = differenceInDays(parseISO(row.date), new Date());
+        const logKey = `${row.whatsapp}_${row.pet_name}`;
+        const lastLog = logMap.get(logKey);
+        const sentRecently = lastLog && differenceInDays(new Date(), parseISO(lastLog.sentAt)) < 1;
+        return {
+          id: row.id,
+          clientWhatsapp: row.whatsapp,
+          ownerName: row.owner_name || '',
+          petName: row.pet_name || '',
+          petBreed: row.pet_breed,
+          date: row.date,
+          time: row.time,
+          daysUntil,
+          reminderSent: !!sentRecently,
+          reminderSentAt: sentRecently ? lastLog?.sentAt : undefined,
+        };
+      });
+
+      setUpcomingReminders(reminders);
+    } catch (err) {
+      console.error('Error fetching upcoming reminders:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [upcomingDays]);
+
+  const fetchHealthReminders = useCallback(async (type: 'vaccine' | 'deworming' | 'flea') => {
     setLoading(true);
     try {
       const { data } = await supabase
@@ -181,10 +262,12 @@ export default function RemindersView() {
   useEffect(() => {
     if (activeTab === 'grooming') {
       fetchGroomingReminders();
+    } else if (activeTab === 'upcoming') {
+      fetchUpcomingReminders();
     } else {
-      fetchHealthReminders(activeTab);
+      fetchHealthReminders(activeTab as 'vaccine' | 'deworming' | 'flea');
     }
-  }, [activeTab, fetchGroomingReminders, fetchHealthReminders]);
+  }, [activeTab, fetchGroomingReminders, fetchHealthReminders, fetchUpcomingReminders]);
 
   const sendReminder = async (
     type: ReminderType,
@@ -241,7 +324,7 @@ export default function RemindersView() {
       });
       setShowAddForm(false);
       setFormData({ ownerName: '', clientWhatsapp: '', petName: '', lastDate: '', intervalDays: activeTab === 'vaccine' ? 365 : 90, notes: '' });
-      fetchHealthReminders(activeTab as 'vaccine' | 'deworming');
+      fetchHealthReminders(activeTab as 'vaccine' | 'deworming' | 'flea');
     } catch (err) {
       console.error('Error adding health record:', err);
     } finally {
@@ -263,10 +346,33 @@ export default function RemindersView() {
     return { bg: '#F0FDF4', text: '#15803D', label: `En ${daysUntilDue} días` };
   };
 
+  const sendUpcomingReminder = async (r: UpcomingAppointmentReminder) => {
+    const [year, month, day] = r.date.split('-').map(Number);
+    const dateLabel = format(new Date(year, month - 1, day), "EEEE d 'de' MMMM", { locale: es });
+    const timeLabel = r.time;
+    const dateTimeLabel = `${dateLabel} a las ${timeLabel}`;
+    const message = generateReminderMessage('upcoming', r.ownerName, r.petName, dateTimeLabel);
+    const cleanPhone = formatPhone(r.clientWhatsapp);
+    window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
+
+    await supabase.from('reminder_logs').insert({
+      client_whatsapp: r.clientWhatsapp,
+      pet_name: r.petName,
+      owner_name: r.ownerName,
+      reminder_type: 'upcoming',
+    });
+
+    setUpcomingReminders((prev) =>
+      prev.map((u) => u.id === r.id ? { ...u, reminderSent: true, reminderSentAt: new Date().toISOString() } : u)
+    );
+  };
+
   const tabs: { key: ReminderTab; label: string; emoji: string }[] = [
+    { key: 'upcoming', label: 'Próxima cita', emoji: '📅' },
     { key: 'grooming', label: 'Grooming', emoji: '🐾' },
     { key: 'vaccine', label: 'Vacunas', emoji: '💉' },
     { key: 'deworming', label: 'Desparasitación', emoji: '💊' },
+    { key: 'flea', label: 'Antipulgas', emoji: '🦟' },
   ];
 
   return (
@@ -389,8 +495,100 @@ export default function RemindersView() {
             </div>
           )}
 
-          {/* ===== VACCINE / DEWORMING TAB ===== */}
-          {(activeTab === 'vaccine' || activeTab === 'deworming') && (
+          {/* ===== UPCOMING APPOINTMENTS TAB ===== */}
+          {activeTab === 'upcoming' && (
+            <div>
+              <div className="flex items-center gap-3 mb-4 bg-white rounded-xl p-3 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+                <span className="text-sm font-medium" style={{ color: '#1B3A5C' }}>Próximos</span>
+                <input
+                  type="number"
+                  value={upcomingDays}
+                  onChange={(e) => setUpcomingDays(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="w-16 px-2 py-1 text-sm text-center rounded-lg border"
+                  style={{ borderColor: '#E5E3DE' }}
+                  min={1}
+                  max={14}
+                />
+                <span className="text-sm" style={{ color: '#6B6B6B' }}>días</span>
+                <button
+                  onClick={fetchUpcomingReminders}
+                  className="ml-auto px-3 py-1 text-xs font-medium rounded-lg"
+                  style={{ backgroundColor: '#F3F4F6', color: '#6B6B6B' }}
+                >
+                  🔄 Actualizar
+                </button>
+              </div>
+
+              {upcomingReminders.length === 0 ? (
+                <div className="bg-white rounded-2xl p-8 text-center shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+                  <div className="text-5xl mb-4">📅</div>
+                  <p className="text-lg font-medium" style={{ color: '#1B3A5C' }}>No hay citas próximas</p>
+                  <p className="text-sm mt-1" style={{ color: '#6B6B6B' }}>No hay citas en los próximos {upcomingDays} días</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-sm font-medium" style={{ color: '#6B6B6B' }}>
+                    {upcomingReminders.length} cita{upcomingReminders.length !== 1 ? 's' : ''} próxima{upcomingReminders.length !== 1 ? 's' : ''}
+                  </p>
+                  {upcomingReminders.map((r) => {
+                    const daysLabel = r.daysUntil === 0 ? '¡Hoy!' : r.daysUntil === 1 ? 'Mañana' : `En ${r.daysUntil} días`;
+                    const urgencyColor = r.daysUntil === 0 ? '#DC2626' : r.daysUntil === 1 ? '#D97706' : '#1D4ED8';
+                    const urgencyBg = r.daysUntil === 0 ? '#FEF2F2' : r.daysUntil === 1 ? '#FFFBEB' : '#EFF6FF';
+                    const [year, month, day] = r.date.split('-').map(Number);
+                    const dateFormatted = format(new Date(year, month - 1, day), "EEEE d 'de' MMMM", { locale: es });
+                    return (
+                      <div key={r.id} className="bg-white rounded-2xl p-4 shadow-[0_2px_12px_rgba(0,0,0,0.06)]"
+                        style={{ borderLeft: `4px solid ${urgencyColor}` }}>
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 text-lg"
+                            style={{ backgroundColor: urgencyBg }}>
+                            🐕
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <h4 className="font-bold text-sm" style={{ color: '#1B3A5C' }}>{r.petName}</h4>
+                                {r.petBreed && <p className="text-xs" style={{ color: '#6B6B6B' }}>{r.petBreed}</p>}
+                                <p className="text-xs" style={{ color: '#6B6B6B' }}>👤 {r.ownerName}</p>
+                              </div>
+                              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold whitespace-nowrap shrink-0"
+                                style={{ backgroundColor: urgencyBg, color: urgencyColor }}>
+                                {daysLabel}
+                              </span>
+                            </div>
+                            <p className="text-xs mt-1 capitalize" style={{ color: '#6B6B6B' }}>
+                              📅 {dateFormatted} · ⏰ {r.time}
+                            </p>
+                            <div className="mt-3">
+                              {r.reminderSent ? (
+                                <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium"
+                                  style={{ backgroundColor: '#F0FDF4', color: '#15803D' }}>
+                                  ✓ Recordatorio enviado hoy
+                                </span>
+                              ) : (
+                                <button
+                                  onClick={() => sendUpcomingReminder(r)}
+                                  className="px-4 py-2 text-xs font-semibold rounded-xl text-white"
+                                  style={{ backgroundColor: '#E8943D' }}
+                                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#D4832F')}
+                                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#E8943D')}
+                                >
+                                  📱 Enviar recordatorio
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ===== VACCINE / DEWORMING / FLEA TAB ===== */}
+          {(activeTab === 'vaccine' || activeTab === 'deworming' || activeTab === 'flea') && (
             <div>
               {/* Add button */}
               <div className="flex items-center justify-between mb-4">
@@ -405,7 +603,7 @@ export default function RemindersView() {
                       clientWhatsapp: '',
                       petName: '',
                       lastDate: '',
-                      intervalDays: activeTab === 'vaccine' ? 365 : 90,
+                      intervalDays: activeTab === 'vaccine' ? 365 : activeTab === 'deworming' ? 90 : 30,
                       notes: '',
                     });
                   }}
@@ -414,7 +612,7 @@ export default function RemindersView() {
                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#D4832F')}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#E8943D')}
                 >
-                  + Agregar {activeTab === 'vaccine' ? 'vacuna' : 'desparasitación'}
+                  + Agregar {activeTab === 'vaccine' ? 'vacuna' : activeTab === 'deworming' ? 'desparasitación' : 'antipulgas'}
                 </button>
               </div>
 
@@ -422,7 +620,7 @@ export default function RemindersView() {
               {showAddForm && (
                 <div className="bg-white rounded-2xl p-4 mb-4 shadow-[0_2px_12px_rgba(0,0,0,0.06)] border" style={{ borderColor: '#E8943D' }}>
                   <h4 className="font-bold text-sm mb-3" style={{ color: '#1B3A5C' }}>
-                    Nueva {activeTab === 'vaccine' ? 'vacuna' : 'desparasitación'}
+                    Nueva {activeTab === 'vaccine' ? 'vacuna' : activeTab === 'deworming' ? 'desparasitación' : 'antipulgas'}
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
@@ -521,9 +719,9 @@ export default function RemindersView() {
               {/* Health list */}
               {healthReminders.length === 0 && !showAddForm ? (
                 <div className="bg-white rounded-2xl p-8 text-center shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
-                  <div className="text-5xl mb-4">{activeTab === 'vaccine' ? '💉' : '💊'}</div>
+                  <div className="text-5xl mb-4">{activeTab === 'vaccine' ? '💉' : activeTab === 'deworming' ? '💊' : '🦟'}</div>
                   <p className="text-lg font-medium" style={{ color: '#1B3A5C' }}>
-                    No hay registros de {activeTab === 'vaccine' ? 'vacunas' : 'desparasitación'}
+                    No hay registros de {activeTab === 'vaccine' ? 'vacunas' : activeTab === 'deworming' ? 'desparasitación' : 'antipulgas'}
                   </p>
                   <p className="text-sm mt-1" style={{ color: '#6B6B6B' }}>
                     Agrega el primer registro con el botón de arriba
@@ -544,7 +742,7 @@ export default function RemindersView() {
                             className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 text-lg"
                             style={{ backgroundColor: urgency.bg }}
                           >
-                            {activeTab === 'vaccine' ? '💉' : '💊'}
+                            {activeTab === 'vaccine' ? '💉' : activeTab === 'deworming' ? '💊' : '🦟'}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-2">
@@ -578,7 +776,7 @@ export default function RemindersView() {
                                 <button
                                   onClick={() => {
                                     const nextFormatted = format(parseISO(r.nextDate), "d 'de' MMMM, yyyy", { locale: es });
-                                    sendReminder(activeTab, r.clientWhatsapp, r.ownerName, r.petName, nextFormatted);
+                                    sendReminder(activeTab as ReminderType, r.clientWhatsapp, r.ownerName, r.petName, nextFormatted);
                                   }}
                                   className="px-4 py-2 text-xs font-semibold rounded-xl text-white transition-colors"
                                   style={{ backgroundColor: '#E8943D' }}

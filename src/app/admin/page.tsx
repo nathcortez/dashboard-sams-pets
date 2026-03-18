@@ -59,6 +59,10 @@ export default function AdminPage() {
         status: row.status as AppointmentStatus,
         originalDate: row.original_date,
         rescheduleHistory: row.reschedule_history || [],
+        groomingStatus: row.grooming_status,
+        groomingTags: row.grooming_tags || [],
+        groomingNotes: row.grooming_notes,
+        groomingCompletedAt: row.grooming_completed_at,
       }));
 
       setAppointments(mappedAppointments);
@@ -348,6 +352,7 @@ export default function AdminPage() {
             onReschedule={handleReschedule}
             onDelete={handleDelete}
             onNewAppointment={() => setShowNewAppointment(true)}
+            onRefresh={fetchAppointments}
           />
         )}
 

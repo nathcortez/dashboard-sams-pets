@@ -1,4 +1,4 @@
-export type ReminderType = "grooming" | "vaccine" | "deworming";
+export type ReminderType = "grooming" | "vaccine" | "deworming" | "flea" | "upcoming";
 
 export interface GroomingReminder {
   clientWhatsapp: string;
@@ -17,12 +17,25 @@ export interface HealthReminder {
   clientWhatsapp: string;
   ownerName: string;
   petName: string;
-  type: "vaccine" | "deworming";
+  type: "vaccine" | "deworming" | "flea";
   lastDate: string;
   nextDate: string;
   intervalDays: number;
   notes?: string;
   daysUntilDue: number; // negativo = ya venció
+  reminderSent: boolean;
+  reminderSentAt?: string;
+}
+
+export interface UpcomingAppointmentReminder {
+  id: string;
+  clientWhatsapp: string;
+  ownerName: string;
+  petName: string;
+  petBreed?: string;
+  date: string;
+  time: string;
+  daysUntil: number; // 0=hoy, 1=mañana, 2=pasado...
   reminderSent: boolean;
   reminderSentAt?: string;
 }

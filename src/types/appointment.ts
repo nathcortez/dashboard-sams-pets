@@ -46,6 +46,11 @@ export interface Appointment {
   original_date?: string;
   rescheduleHistory?: RescheduleEntry[];
   reschedule_history?: RescheduleEntry[];
+  // Reporte post-grooming
+  groomingStatus?: 'excelente' | 'bueno' | 'regular' | 'con_incidencias';
+  groomingTags?: string[];
+  groomingNotes?: string;
+  groomingCompletedAt?: string;
 }
 
 export interface BusinessInfo {
