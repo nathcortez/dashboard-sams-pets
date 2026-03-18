@@ -48,31 +48,36 @@ export default function NewAppointmentModal({ isOpen, onClose, onSuccess, select
   const [petBreed, setPetBreed] = useState('');
   const [selectedPetId, setSelectedPetId] = useState<string>('');
 
+  // Fecha editable: usa selectedDate si viene del calendario, si no, hoy
+  const defaultDate = selectedDate
+    ? format(selectedDate, 'yyyy-MM-dd')
+    : format(new Date(), 'yyyy-MM-dd');
+  const [appointmentDate, setAppointmentDate] = useState(defaultDate);
+
   const [time, setTime] = useState('08:00');
   const [comments, setComments] = useState('');
   const [additionalService, setAdditionalService] = useState(false);
   const [dayAppointments, setDayAppointments] = useState<ExistingAppointment[]>([]);
 
-  // Cargar citas del día cuando cambia selectedDate
+  // Cargar citas del día cuando cambia la fecha seleccionada
   useEffect(() => {
     const fetchDayAppointments = async () => {
-      if (!selectedDate) {
+      if (!appointmentDate) {
         setDayAppointments([]);
         return;
       }
 
-      const dateStr = format(selectedDate, 'yyyy-MM-dd');
       const { data } = await supabase
         .from('appointments')
         .select('id, date, time, base_time_minutes, service_additional_time, recovery_time')
-        .eq('date', dateStr)
+        .eq('date', appointmentDate)
         .neq('status', 'cancelada');
 
       setDayAppointments(data || []);
     };
 
     fetchDayAppointments();
-  }, [selectedDate]);
+  }, [appointmentDate]);
 
   // Resetear hora cuando cambia additionalService (afecta duración)
   useEffect(() => {
@@ -199,7 +204,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onSuccess, select
           whatsapp,
           comments,
           additional_service: additionalService,
-          date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : '',
+          date: appointmentDate,
           time,
           status: 'pendiente',
         });
@@ -225,6 +230,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onSuccess, select
     setPetName('');
     setPetBreed('');
     setSelectedPetId('');
+    setAppointmentDate(format(new Date(), 'yyyy-MM-dd'));
     setTime('08:00');
     setComments('');
     setAdditionalService(false);
@@ -297,12 +303,15 @@ export default function NewAppointmentModal({ isOpen, onClose, onSuccess, select
             <h3 className="font-medium text-[--azul-oscuro] text-sm uppercase tracking-wide">Datos de la Cita</h3>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
-                <div className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-700">
-                  {selectedDate
-                    ? format(selectedDate, "EEEE d 'de' MMMM", { locale: es }).charAt(0).toUpperCase() + format(selectedDate, "EEEE d 'de' MMMM", { locale: es }).slice(1)
-                    : 'Sin fecha'}
-                </div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Fecha *</label>
+                <input
+                  type="date"
+                  value={appointmentDate}
+                  onChange={(e) => setAppointmentDate(e.target.value)}
+                  min={format(new Date(), 'yyyy-MM-dd')}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[--azul-principal] focus:border-transparent"
+                  required
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Hora *</label>
