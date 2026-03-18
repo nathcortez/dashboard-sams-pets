@@ -10,61 +10,57 @@ type ReminderTab = 'grooming' | 'vaccine' | 'deworming' | 'flea' | 'upcoming';
 
 const generateReminderMessage = (type: ReminderType, ownerName: string, petName: string, daysOrDate: number | string) => {
   if (type === 'grooming') {
-    return `¡Hola ${ownerName}! 🐾
+    return `Hola ${ownerName},
 
-Notamos que *${petName}* ya tiene *${daysOrDate} días* desde su último baño o corte en Sam's Pets.
+Notamos que *${petName}* ya tiene *${daysOrDate} dias* desde su ultimo bano o corte en Sam's Pets.
 
-¡Es hora de que ${petName} luzca increíble de nuevo! ✂️🛁
+Es hora de que ${petName} luzca increible de nuevo.
 
-¿Te gustaría agendar una nueva cita?
+Agenda aqui: https://sams-pets-citas.vercel.app
 
-📅 Agenda aquí: https://sams-pets-citas.vercel.app
-
-_Sam's Pets — El Progreso, Jutiapa_
-📞 +502 4903-7428`;
+Sam's Pets - El Progreso, Jutiapa
+Tel: +502 4903-7428`;
   }
   if (type === 'vaccine') {
-    return `¡Hola ${ownerName}! 💉
+    return `Hola ${ownerName},
 
-Te recordamos que *${petName}* tiene su próxima *vacuna* programada para el *${daysOrDate}*.
+Te recordamos que *${petName}* tiene su proxima *vacuna* programada para el *${daysOrDate}*.
 
-¡Mantener al día las vacunas de tu mascota es muy importante para su salud! 🐕
+Mantener al dia las vacunas de tu mascota es importante para su salud.
 
-Si necesitas más información, estamos aquí para ayudarte.
+Si necesitas mas informacion, estamos aqui para ayudarte.
 
-_Sam's Pets — El Progreso, Jutiapa_
-📞 +502 4903-7428`;
+Sam's Pets - El Progreso, Jutiapa
+Tel: +502 4903-7428`;
   }
   if (type === 'flea') {
-    return `¡Hola ${ownerName}! 🦟
+    return `Hola ${ownerName},
 
-Te recordamos que *${petName}* tiene su próxima aplicación de *antipulgas* para el *${daysOrDate}*.
+Te recordamos que *${petName}* tiene su proxima aplicacion de *antipulgas* para el *${daysOrDate}*.
 
-Mantener a tu mascota libre de pulgas es clave para su bienestar. 🐕✨
+Mantener a tu mascota libre de pulgas es clave para su bienestar.
 
-_Sam's Pets — El Progreso, Jutiapa_
-📞 +502 4903-7428`;
+Sam's Pets - El Progreso, Jutiapa
+Tel: +502 4903-7428`;
   }
   if (type === 'upcoming') {
-    return `¡Hola ${ownerName}! 📅
+    return `Hola ${ownerName},
 
 Te recordamos que *${petName}* tiene una cita de grooming en Sam's Pets el *${daysOrDate}*.
 
-¡Te esperamos! ✂️🐾
+Te esperamos. Si necesitas cambiar la cita, contactanos al:
+Tel: +502 4903-7428
 
-Si necesitas cambiar la cita, contáctanos:
-📞 +502 4903-7428
-
-_Sam's Pets — El Progreso, Jutiapa_`;
+Sam's Pets - El Progreso, Jutiapa`;
   }
-  return `¡Hola ${ownerName}! 💊
+  return `Hola ${ownerName},
 
-Te recordamos que *${petName}* necesita su próxima *desparasitación* para el *${daysOrDate}*.
+Te recordamos que *${petName}* necesita su proxima *desparasitacion* para el *${daysOrDate}*.
 
-La desparasitación regular protege a tu mascota y a toda tu familia. 🐕❤️
+La desparasitacion regular protege a tu mascota y a toda tu familia.
 
-_Sam's Pets — El Progreso, Jutiapa_
-📞 +502 4903-7428`;
+Sam's Pets - El Progreso, Jutiapa
+Tel: +502 4903-7428`;
 };
 
 const formatPhone = (phone: string) => phone.replace(/[^0-9]/g, '');
