@@ -111,11 +111,12 @@ export default function AppointmentList({ appointments, onStatusChange, onCancel
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <h4
-                      className={`font-bold text-sm ${appointment.status === 'cancelada' ? 'line-through text-gray-400' : 'text-gray-900'}`}
+                      className="font-bold text-sm"
+                      style={{ color: appointment.status === 'cancelada' ? '#9CA3AF' : '#1B3A5C', textDecoration: appointment.status === 'cancelada' ? 'line-through' : 'none' }}
                     >
                       {petName} {breedEmoji}
                     </h4>
-                    <p className="text-xs capitalize whitespace-nowrap text-gray-500">
+                    <p className="text-xs capitalize whitespace-nowrap" style={{ color: '#6B6B6B' }}>
                       {formatDate(appointment.date)} · {formatTime(appointment.time)}
                     </p>
                   </div>
@@ -130,9 +131,9 @@ export default function AppointmentList({ appointments, onStatusChange, onCancel
                   </span>
                 </div>
 
-                <div className="mt-1.5 text-xs space-y-0.5 text-gray-600">
-                  <p className="text-gray-700 font-medium">👤 {ownerName} {whatsapp && `· 📱 ${whatsapp}`}</p>
-                  {serviceName && <p>✂️ {serviceName}</p>}
+                <div className="mt-1.5 text-xs space-y-0.5">
+                  <p className="font-medium" style={{ color: '#444444' }}>👤 {ownerName} {whatsapp && `· 📱 ${whatsapp}`}</p>
+                  {serviceName && <p style={{ color: '#6B6B6B' }}>✂️ {serviceName}</p>}
                   {additionalService && (
                     <p style={{ color: '#E8943D' }} className="font-medium">⚠️ Servicio adicional</p>
                   )}
