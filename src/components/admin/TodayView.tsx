@@ -159,7 +159,7 @@ export default function TodayView({ appointments, onStatusChange, onCancel, onRe
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-0.5">
-                          <h4 className="font-bold text-base" style={{ color: '#1B3A5C' }}>
+                          <h4 className="font-bold text-base text-gray-900">
                             {petName}
                           </h4>
                           {breedEmoji && <span>{breedEmoji}</span>}
@@ -175,13 +175,13 @@ export default function TodayView({ appointments, onStatusChange, onCancel, onRe
                           </span>
                         </div>
                         {breed && (
-                          <p className="text-sm" style={{ color: '#6B6B6B' }}>{breed}</p>
+                          <p className="text-sm text-gray-600">{breed}</p>
                         )}
-                        <p className="text-sm" style={{ color: '#6B6B6B' }}>👤 {ownerName}</p>
+                        <p className="text-sm text-gray-700 font-medium">👤 {ownerName}</p>
                         {serviceName && (
-                          <p className="text-sm" style={{ color: '#6B6B6B' }}>✂️ {serviceName}</p>
+                          <p className="text-sm text-gray-600">✂️ {serviceName}</p>
                         )}
-                        <p className="text-sm" style={{ color: '#6B6B6B' }}>🕐 {formatDuration(duration)}</p>
+                        <p className="text-sm text-gray-600">🕐 {formatDuration(duration)}</p>
                       </div>
                       {photo && (
                         <img
