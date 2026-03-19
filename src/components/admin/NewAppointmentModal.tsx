@@ -199,6 +199,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onSuccess, select
         .from('appointments')
         .insert({
           pet_name: petName,
+          pet_breed: petBreed,
           pet_breed_age: petBreed,
           owner_name: ownerName,
           whatsapp,

@@ -74,8 +74,8 @@ export default function AppointmentList({ appointments, onStatusChange, onCancel
     <div className="space-y-3">
       {appointments.map((appointment) => {
         const petName = appointment.petName || appointment.pet_name || 'Sin nombre';
-        const ownerName = appointment.ownerName || appointment.owner_name || '';
-        const breed = appointment.petBreed || appointment.pet_breed || '';
+        const ownerName = appointment.ownerName || appointment.owner_name || 'Sin información';
+        const breed = appointment.petBreed || appointment.pet_breed || appointment.petBreedAge || appointment.pet_breed_age || '';
         const breedEmoji = appointment.petBreedEmoji || appointment.pet_breed_emoji || '';
         const serviceName = appointment.serviceName || appointment.service_name || '';
         const photo = appointment.petPhoto || appointment.pet_photo_url || '';
