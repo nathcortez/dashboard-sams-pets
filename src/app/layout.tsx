@@ -8,6 +8,7 @@ const plusJakartaSans = Plus_Jakarta_Sans({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Sam's Pets - Dashboard",
   description: "Panel de administración de citas",
+  colorScheme: "light",
 };
 
 export default function RootLayout({
@@ -16,8 +17,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es">
-      <body className={`${plusJakartaSans.className} bg-[#F5F3EE]`}>
+    <html lang="es" style={{ colorScheme: 'light' }}>
+      <body className={`${plusJakartaSans.className} bg-[#F5F3EE]`} style={{ colorScheme: 'light' }}>
         <AuthProvider>
           {children}
         </AuthProvider>

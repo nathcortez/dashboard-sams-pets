@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+:root,
+* {
+  color-scheme: light only;
+}
+
 :root {
   --naranja: #E8943D;
   --naranja-hover: #D4832F;
