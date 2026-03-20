@@ -1,4 +1,4 @@
-export type AppointmentStatus = 'pendiente' | 'confirmada' | 'completada' | 'cancelada';
+export type AppointmentStatus = 'pendiente' | 'confirmada' | 'en_proceso' | 'completada' | 'cancelada';
 
 export interface RescheduleEntry {
   from: string;

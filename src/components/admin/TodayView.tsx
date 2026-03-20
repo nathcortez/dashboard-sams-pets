@@ -32,6 +32,7 @@ interface TodayViewProps {
 const borderColors: Record<AppointmentStatus, string> = {
   pendiente: '#E8943D',
   confirmada: '#2563EB',
+  en_proceso: '#7C3AED',
   completada: '#4A7C59',
   cancelada: '#EF4444',
 };
@@ -39,6 +40,7 @@ const borderColors: Record<AppointmentStatus, string> = {
 const statusBadgeStyles: Record<AppointmentStatus, { bg: string; text: string }> = {
   pendiente: { bg: '#FFF4EA', text: '#E8943D' },
   confirmada: { bg: '#EFF6FF', text: '#2563EB' },
+  en_proceso: { bg: '#F5F3FF', text: '#7C3AED' },
   completada: { bg: '#E8F5E9', text: '#4A7C59' },
   cancelada: { bg: '#FEF2F2', text: '#EF4444' },
 };
@@ -46,6 +48,7 @@ const statusBadgeStyles: Record<AppointmentStatus, { bg: string; text: string }>
 const statusLabels: Record<AppointmentStatus, string> = {
   pendiente: 'Pendiente',
   confirmada: 'Confirmada',
+  en_proceso: '✂️ En Proceso',
   completada: 'Completada',
   cancelada: 'Cancelada',
 };
@@ -74,7 +77,7 @@ export default function TodayView({ appointments, onStatusChange, onCancel, onRe
   const stats = useMemo(() => ({
     total: todayAppointments.length,
     completed: todayAppointments.filter((a) => a.status === 'completada').length,
-    pending: todayAppointments.filter((a) => a.status === 'pendiente' || a.status === 'confirmada').length,
+    pending: todayAppointments.filter((a) => a.status === 'pendiente' || a.status === 'confirmada' || a.status === 'en_proceso').length,
   }), [todayAppointments]);
 
   const formatTime = (time: string) => {
@@ -223,6 +226,17 @@ export default function TodayView({ appointments, onStatusChange, onCancel, onRe
                           </button>
                         )}
                         {appointment.status === 'confirmada' && (
+                          <button
+                            onClick={() => onStatusChange(appointment.id, 'en_proceso')}
+                            className="w-full py-2.5 px-4 text-white text-sm font-semibold rounded-xl transition-colors"
+                            style={{ backgroundColor: '#7C3AED' }}
+                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#6D28D9')}
+                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#7C3AED')}
+                          >
+                            ✂️ Iniciar Grooming
+                          </button>
+                        )}
+                        {appointment.status === 'en_proceso' && (
                           <button
                             onClick={() => onStatusChange(appointment.id, 'completada')}
                             className="w-full py-2.5 px-4 text-white text-sm font-semibold rounded-xl transition-colors"

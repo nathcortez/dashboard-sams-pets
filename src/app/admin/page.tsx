@@ -410,7 +410,7 @@ export default function AdminPage() {
           <div>
             {/* Filter chips */}
             <div className="flex gap-2 overflow-x-auto pb-4 mb-4">
-              {(['all', 'pendiente', 'confirmada', 'completada', 'cancelada'] as const).map((f) => (
+              {(['all', 'pendiente', 'confirmada', 'en_proceso', 'completada', 'cancelada'] as const).map((f) => (
                 <button
                   key={f}
                   onClick={() => setHistoryFilter(f)}
@@ -421,7 +421,7 @@ export default function AdminPage() {
                     border: historyFilter === f ? 'none' : '1px solid #E5E3DE',
                   }}
                 >
-                  {f === 'all' ? 'Todas' : f.charAt(0).toUpperCase() + f.slice(1) + 's'}
+                  {f === 'all' ? 'Todas' : f === 'en_proceso' ? '✂️ En Proceso' : f.charAt(0).toUpperCase() + f.slice(1) + 's'}
                 </button>
               ))}
             </div>

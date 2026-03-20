@@ -414,19 +414,21 @@ export default function Dashboard() {
 
   const getStatusColor = (status: AppointmentStatus) => {
     switch (status) {
-      case 'pendiente': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'pendiente':  return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'confirmada': return 'bg-[#E8F5E9] text-blue-800 border-blue-200';
+      case 'en_proceso': return 'bg-[#F5F3FF] text-purple-700 border-purple-200';
       case 'completada': return 'bg-green-100 text-green-800 border-green-200';
-      case 'cancelada': return 'bg-red-100 text-red-800 border-red-200';
+      case 'cancelada':  return 'bg-red-100 text-red-800 border-red-200';
     }
   };
 
   const getStatusLabel = (status: AppointmentStatus) => {
     switch (status) {
-      case 'pendiente': return 'Pendiente';
+      case 'pendiente':  return 'Pendiente';
       case 'confirmada': return 'Confirmada';
+      case 'en_proceso': return '✂️ En Proceso';
       case 'completada': return 'Completada';
-      case 'cancelada': return 'Cancelada';
+      case 'cancelada':  return 'Cancelada';
     }
   };
 
@@ -665,7 +667,7 @@ export default function Dashboard() {
           <div className="flex-1 overflow-y-auto space-y-3 pr-1">
             {selectedDateAppointments.map((apt) => {
               const isExpanded = expandedAppointment === apt.id;
-              const statusColor = apt.status === 'pendiente' ? '#F59E0B' : apt.status === 'confirmada' ? '#4A7C59' : apt.status === 'completada' ? '#9CA3AF' : '#EF4444';
+              const statusColor = apt.status === 'pendiente' ? '#F59E0B' : apt.status === 'confirmada' ? '#4A7C59' : apt.status === 'en_proceso' ? '#7C3AED' : apt.status === 'completada' ? '#9CA3AF' : '#EF4444';
 
               return (
                 <div
@@ -693,8 +695,9 @@ export default function Dashboard() {
                       </p>
                     </div>
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      apt.status === 'pendiente' ? 'bg-[#FEF3C7] text-[#B45309]' :
+                      apt.status === 'pendiente'  ? 'bg-[#FEF3C7] text-[#B45309]' :
                       apt.status === 'confirmada' ? 'bg-[#EEF4F0] text-[#4A7C59]' :
+                      apt.status === 'en_proceso' ? 'bg-[#F5F3FF] text-[#7C3AED]' :
                       apt.status === 'completada' ? 'bg-[#F3F4F6] text-[#6B7280]' :
                       'bg-red-100 text-red-700'
                     }`}>
@@ -777,6 +780,7 @@ export default function Dashboard() {
                           >
                             <option value="pendiente">Pendiente</option>
                             <option value="confirmada">Confirmada</option>
+                            <option value="en_proceso">✂️ En Proceso</option>
                             <option value="completada">Completada</option>
                             <option value="cancelada">Cancelada</option>
                           </select>
@@ -802,21 +806,37 @@ export default function Dashboard() {
                           </svg>
                           WhatsApp
                         </button>
-                        {apt.status !== 'cancelada' && apt.status !== 'completada' && (
-                          <>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); updateStatus(apt.id, 'confirmada'); }}
-                              className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-[#4A7C59] hover:bg-[#3D6A4B] text-white text-sm rounded-lg transition-colors"
-                            >
-                              ✓ Confirmar
-                            </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); updateStatus(apt.id, 'cancelada'); }}
-                              className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-red-500 hover:bg-red-600 text-white text-sm rounded-lg transition-colors"
-                            >
-                              ✕ Cancelar
-                            </button>
-                          </>
+                        {apt.status === 'pendiente' && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); updateStatus(apt.id, 'confirmada'); }}
+                            className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-[#4A7C59] hover:bg-[#3D6A4B] text-white text-sm rounded-lg transition-colors"
+                          >
+                            ✓ Confirmar
+                          </button>
+                        )}
+                        {apt.status === 'confirmada' && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); updateStatus(apt.id, 'en_proceso'); }}
+                            className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-sm rounded-lg transition-colors"
+                          >
+                            ✂️ Iniciar Grooming
+                          </button>
+                        )}
+                        {apt.status === 'en_proceso' && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); updateStatus(apt.id, 'completada'); }}
+                            className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-[#4A7C59] hover:bg-[#3D6A4B] text-white text-sm rounded-lg transition-colors"
+                          >
+                            ✅ Completar
+                          </button>
+                        )}
+                        {(apt.status === 'pendiente' || apt.status === 'confirmada' || apt.status === 'en_proceso') && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); updateStatus(apt.id, 'cancelada'); }}
+                            className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-red-500 hover:bg-red-600 text-white text-sm rounded-lg transition-colors"
+                          >
+                            ✕ Cancelar
+                          </button>
                         )}
                         {apt.status === 'cancelada' && (
                           <button
@@ -1017,6 +1037,7 @@ export default function Dashboard() {
                 <option value="all">Todos</option>
                 <option value="pendiente">Pendiente</option>
                 <option value="confirmada">Confirmada</option>
+                <option value="en_proceso">✂️ En Proceso</option>
                 <option value="completada">Completada</option>
                 <option value="cancelada">Cancelada</option>
               </select>
@@ -1933,8 +1954,9 @@ export default function Dashboard() {
                           >
                             {/* Franja de color según estado */}
                             <div className={`absolute left-0 top-0 bottom-0 w-[4px] ${
-                              apt.status === 'pendiente' ? 'bg-[#F59E0B]' :
+                              apt.status === 'pendiente'  ? 'bg-[#F59E0B]' :
                               apt.status === 'confirmada' ? 'bg-[#4A7C59]' :
+                              apt.status === 'en_proceso' ? 'bg-[#7C3AED]' :
                               apt.status === 'completada' ? 'bg-[#9CA3AF]' :
                               'bg-[#EF4444]'
                             }`} />
@@ -1952,13 +1974,15 @@ export default function Dashboard() {
                               {apt.service_name || apt.serviceName || 'Servicio'}
                             </div>
                             <span className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
-                              apt.status === 'pendiente' ? 'bg-[#FEF3C7] text-[#B45309]' :
+                              apt.status === 'pendiente'  ? 'bg-[#FEF3C7] text-[#B45309]' :
                               apt.status === 'confirmada' ? 'bg-[#EEF4F0] text-[#4A7C59]' :
+                              apt.status === 'en_proceso' ? 'bg-[#F5F3FF] text-[#7C3AED]' :
                               apt.status === 'completada' ? 'bg-[#F3F4F6] text-[#6B7280]' :
                               'bg-red-100 text-red-700'
                             }`}>
-                              {apt.status === 'pendiente' ? '⏳ Pendiente' :
+                              {apt.status === 'pendiente'  ? '⏳ Pendiente' :
                                apt.status === 'confirmada' ? '✓ Confirmada' :
+                               apt.status === 'en_proceso' ? '✂️ En Proceso' :
                                apt.status === 'completada' ? '✓ Completada' : '✕ Cancelada'}
                             </span>
                           </div>
