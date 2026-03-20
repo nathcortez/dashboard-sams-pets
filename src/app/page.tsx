@@ -1943,13 +1943,13 @@ export default function Dashboard() {
                             </div>
                             <div className="flex-1 min-w-0 pl-2">
                               <p className="font-semibold text-[#1C1C1C] truncate">
-                                🐕 {apt.petName} {apt.petBreed ? `(${apt.petBreed})` : ''}
+                                🐕 {apt.pet_name || apt.petName || 'Sin nombre'} {(apt.pet_breed || apt.petBreed) ? `(${apt.pet_breed || apt.petBreed})` : ''}
                               </p>
-                              <p className="text-sm text-[#6B6B6B] truncate">👤 {apt.ownerName}</p>
+                              <p className="text-sm text-[#6B6B6B] truncate">👤 {apt.owner_name || apt.ownerName || 'Sin cliente'}</p>
                             </div>
                             <div className="text-sm text-[#4A4A4A] whitespace-nowrap flex items-center gap-1">
                               <span>✂️</span>
-                              {apt.serviceName || 'Servicio'}
+                              {apt.service_name || apt.serviceName || 'Servicio'}
                             </div>
                             <span className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
                               apt.status === 'pendiente' ? 'bg-[#FEF3C7] text-[#B45309]' :
