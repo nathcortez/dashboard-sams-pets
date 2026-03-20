@@ -22,6 +22,7 @@ const GROOMING_TAG_LABELS: Record<string, string> = {
 interface TodayViewProps {
   appointments: Appointment[];
   onStatusChange: (id: string, status: AppointmentStatus) => void;
+  onStartGrooming: (id: string) => void;
   onCancel: (id: string) => void;
   onReschedule: (appointment: Appointment) => void;
   onDelete?: (id: string) => void;
@@ -63,7 +64,7 @@ const getDuration = (apt: Appointment) => {
 const formatDuration = (min: number) =>
   min >= 60 ? `${Math.floor(min / 60)}h ${min % 60 > 0 ? min % 60 + 'min' : ''}`.trim() : `${min}min`;
 
-export default function TodayView({ appointments, onStatusChange, onCancel, onReschedule, onDelete, onNewAppointment, onRefresh }: TodayViewProps) {
+export default function TodayView({ appointments, onStatusChange, onStartGrooming, onCancel, onReschedule, onDelete, onNewAppointment, onRefresh }: TodayViewProps) {
   const [groomingReportApt, setGroomingReportApt] = useState<Appointment | null>(null);
 
   const todayAppointments = useMemo(() => {
@@ -227,7 +228,7 @@ export default function TodayView({ appointments, onStatusChange, onCancel, onRe
                         )}
                         {appointment.status === 'confirmada' && (
                           <button
-                            onClick={() => onStatusChange(appointment.id, 'en_proceso')}
+                            onClick={() => onStartGrooming(appointment.id)}
                             className="w-full py-2.5 px-4 text-white text-sm font-semibold rounded-xl transition-colors"
                             style={{ backgroundColor: '#7C3AED' }}
                             onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#6D28D9')}
@@ -237,15 +238,23 @@ export default function TodayView({ appointments, onStatusChange, onCancel, onRe
                           </button>
                         )}
                         {appointment.status === 'en_proceso' && (
-                          <button
-                            onClick={() => onStatusChange(appointment.id, 'completada')}
-                            className="w-full py-2.5 px-4 text-white text-sm font-semibold rounded-xl transition-colors"
-                            style={{ backgroundColor: '#4A7C59' }}
-                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#3D6A4B')}
-                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#4A7C59')}
-                          >
-                            ✅ Completar
-                          </button>
+                          <>
+                            {(appointment.groomingStartedAt || appointment.grooming_started_at) && (
+                              <p className="text-xs text-center font-medium mb-1" style={{ color: '#7C3AED' }}>
+                                ✂️ Grooming iniciado a las{' '}
+                                {new Date(appointment.groomingStartedAt || appointment.grooming_started_at!).toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                            )}
+                            <button
+                              onClick={() => onStatusChange(appointment.id, 'completada')}
+                              className="w-full py-2.5 px-4 text-white text-sm font-semibold rounded-xl transition-colors"
+                              style={{ backgroundColor: '#4A7C59' }}
+                              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#3D6A4B')}
+                              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#4A7C59')}
+                            >
+                              ✅ Completar
+                            </button>
+                          </>
                         )}
 
                         {/* Secondary actions — 3 in a row */}

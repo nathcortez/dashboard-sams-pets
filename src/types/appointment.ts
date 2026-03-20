@@ -46,6 +46,9 @@ export interface Appointment {
   original_date?: string;
   rescheduleHistory?: RescheduleEntry[];
   reschedule_history?: RescheduleEntry[];
+  // Tracking de inicio de grooming
+  groomingStartedAt?: string;
+  grooming_started_at?: string;
   // Reporte post-grooming
   groomingStatus?: 'excelente' | 'bueno' | 'regular' | 'con_incidencias';
   groomingTags?: string[];

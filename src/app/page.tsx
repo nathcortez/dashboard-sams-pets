@@ -235,6 +235,22 @@ export default function Dashboard() {
     }
   };
 
+  const handleStartGrooming = async (id: string) => {
+    try {
+      const startedAt = new Date().toISOString();
+      const { error } = await supabase
+        .from('appointments')
+        .update({ status: 'en_proceso', grooming_started_at: startedAt })
+        .eq('id', id);
+      if (error) throw error;
+      setAppointments((prev) =>
+        prev.map((apt) => apt.id === id ? { ...apt, status: 'en_proceso' as AppointmentStatus, grooming_started_at: startedAt } : apt)
+      );
+    } catch (err) {
+      console.error('Error iniciando grooming:', err);
+    }
+  };
+
   // Agrupar citas por fecha
   const appointmentsByDate = useMemo(() => {
     const grouped: Record<string, Appointment[]> = {};
@@ -816,19 +832,26 @@ export default function Dashboard() {
                         )}
                         {apt.status === 'confirmada' && (
                           <button
-                            onClick={(e) => { e.stopPropagation(); updateStatus(apt.id, 'en_proceso'); }}
+                            onClick={(e) => { e.stopPropagation(); handleStartGrooming(apt.id); }}
                             className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-sm rounded-lg transition-colors"
                           >
                             ✂️ Iniciar Grooming
                           </button>
                         )}
                         {apt.status === 'en_proceso' && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); updateStatus(apt.id, 'completada'); }}
-                            className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-[#4A7C59] hover:bg-[#3D6A4B] text-white text-sm rounded-lg transition-colors"
-                          >
-                            ✅ Completar
-                          </button>
+                          <>
+                            {apt.grooming_started_at && (
+                              <span className="flex-1 text-center text-xs font-medium py-2" style={{ color: '#7C3AED' }}>
+                                ✂️ Iniciado a las {new Date(apt.grooming_started_at).toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            )}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); updateStatus(apt.id, 'completada'); }}
+                              className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-[#4A7C59] hover:bg-[#3D6A4B] text-white text-sm rounded-lg transition-colors"
+                            >
+                              ✅ Completar
+                            </button>
+                          </>
                         )}
                         {(apt.status === 'pendiente' || apt.status === 'confirmada' || apt.status === 'en_proceso') && (
                           <button
@@ -1204,6 +1227,67 @@ export default function Dashboard() {
             ))}
           </div>
         </div>
+
+        {/* Registro de inicio de grooming */}
+        {(() => {
+          const groomingLogs = appointments
+            .filter(a => a.grooming_started_at && a.date >= reportDateFrom && a.date <= reportDateTo)
+            .sort((a, b) => (b.grooming_started_at || '').localeCompare(a.grooming_started_at || ''));
+          if (groomingLogs.length === 0) return null;
+          return (
+            <div className="bg-white rounded-xl shadow-sm border p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-gray-700">✂️ Registro de Inicio de Grooming</h3>
+                <span className="text-xs text-gray-400">{groomingLogs.length} registros</span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b bg-[#FAFAF8]">
+                      <th className="text-left py-2 px-3 text-gray-500">Fecha</th>
+                      <th className="text-left py-2 px-3 text-gray-500">Cita</th>
+                      <th className="text-left py-2 px-3 text-gray-500">Mascota</th>
+                      <th className="text-left py-2 px-3 text-gray-500">Cliente</th>
+                      <th className="text-left py-2 px-3 text-gray-500">Inicio grooming</th>
+                      <th className="text-left py-2 px-3 text-gray-500">Espera</th>
+                      <th className="text-left py-2 px-3 text-gray-500">Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {groomingLogs.map(a => {
+                      const startedAt = new Date(a.grooming_started_at!);
+                      const [aptH, aptM] = a.time.split(':').map(Number);
+                      const aptMinutes = aptH * 60 + aptM;
+                      const startMinutes = startedAt.getHours() * 60 + startedAt.getMinutes();
+                      const waitMins = startMinutes - aptMinutes;
+                      return (
+                        <tr key={a.id} className="hover:bg-[#FAFAF8]">
+                          <td className="py-2 px-3 text-gray-600">{format(new Date(a.date), 'dd MMM', { locale: es })}</td>
+                          <td className="py-2 px-3 font-medium text-gray-800">{a.time}</td>
+                          <td className="py-2 px-3">{a.pet_name || a.petName || '—'}</td>
+                          <td className="py-2 px-3 text-gray-600">{a.owner_name || a.ownerName || '—'}</td>
+                          <td className="py-2 px-3 font-semibold" style={{ color: '#7C3AED' }}>
+                            {startedAt.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' })}
+                          </td>
+                          <td className="py-2 px-3">
+                            <span className={`px-2 py-0.5 rounded-full text-xs ${waitMins <= 5 ? 'bg-green-100 text-green-700' : waitMins <= 15 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
+                              {waitMins <= 0 ? 'A tiempo' : `+${waitMins} min`}
+                            </span>
+                          </td>
+                          <td className="py-2 px-3">
+                            <span className={`px-2 py-0.5 rounded-full text-xs ${a.status === 'completada' ? 'bg-green-100 text-green-700' : 'bg-[#F5F3FF] text-[#7C3AED]'}`}>
+                              {a.status === 'completada' ? '✓ Completada' : '✂️ En Proceso'}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     );
   };

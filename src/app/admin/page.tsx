@@ -59,6 +59,7 @@ export default function AdminPage() {
         status: row.status as AppointmentStatus,
         originalDate: row.original_date,
         rescheduleHistory: row.reschedule_history || [],
+        groomingStartedAt: row.grooming_started_at,
         groomingStatus: row.grooming_status,
         groomingTags: row.grooming_tags || [],
         groomingNotes: row.grooming_notes,
@@ -143,6 +144,22 @@ export default function AdminPage() {
       setAppointments((prev) =>
         prev.map((apt) => (apt.id === id ? { ...apt, status } : apt))
       );
+    }
+  };
+
+  const handleStartGrooming = async (id: string) => {
+    try {
+      const startedAt = new Date().toISOString();
+      const { error } = await supabase
+        .from('appointments')
+        .update({ status: 'en_proceso', grooming_started_at: startedAt })
+        .eq('id', id);
+      if (error) throw error;
+      setAppointments((prev) =>
+        prev.map((apt) => apt.id === id ? { ...apt, status: 'en_proceso', groomingStartedAt: startedAt } : apt)
+      );
+    } catch (err) {
+      console.error('Error iniciando grooming:', err);
     }
   };
 
@@ -348,6 +365,7 @@ export default function AdminPage() {
           <TodayView
             appointments={appointments}
             onStatusChange={handleStatusChange}
+            onStartGrooming={handleStartGrooming}
             onCancel={handleCancel}
             onReschedule={handleReschedule}
             onDelete={handleDelete}
@@ -394,6 +412,7 @@ export default function AdminPage() {
               onReschedule={handleReschedule}
               onDelete={handleDelete}
               onStatusChange={handleStatusChange}
+              onStartGrooming={handleStartGrooming}
             />
           </div>
         )}

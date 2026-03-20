@@ -7,6 +7,7 @@ import { es } from 'date-fns/locale';
 interface AppointmentListProps {
   appointments: Appointment[];
   onStatusChange: (id: string, status: AppointmentStatus) => void;
+  onStartGrooming?: (id: string) => void;
   onCancel?: (id: string) => void;
   onReschedule?: (appointment: Appointment) => void;
   onDelete?: (id: string) => void;
@@ -37,7 +38,7 @@ const statusLabels: Record<AppointmentStatus, string> = {
   cancelada:  'Cancelada',
 };
 
-export default function AppointmentList({ appointments, onStatusChange, onCancel, onReschedule, onDelete, compact }: AppointmentListProps) {
+export default function AppointmentList({ appointments, onStatusChange, onStartGrooming, onCancel, onReschedule, onDelete, compact }: AppointmentListProps) {
   const formatDate = (dateStr: string) => {
     try {
       return format(new Date(dateStr + 'T12:00:00'), "EEEE d MMM", { locale: es });
@@ -165,7 +166,7 @@ export default function AppointmentList({ appointments, onStatusChange, onCancel
                     )}
                     {appointment.status === 'confirmada' && (
                       <button
-                        onClick={() => onStatusChange(appointment.id, 'en_proceso')}
+                        onClick={() => onStartGrooming ? onStartGrooming(appointment.id) : onStatusChange(appointment.id, 'en_proceso')}
                         className="w-full py-2 px-3 text-white text-xs font-semibold rounded-xl transition-colors"
                         style={{ backgroundColor: '#7C3AED' }}
                         onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#6D28D9')}
@@ -175,15 +176,22 @@ export default function AppointmentList({ appointments, onStatusChange, onCancel
                       </button>
                     )}
                     {appointment.status === 'en_proceso' && (
-                      <button
-                        onClick={() => onStatusChange(appointment.id, 'completada')}
-                        className="w-full py-2 px-3 text-white text-xs font-semibold rounded-xl transition-colors"
-                        style={{ backgroundColor: '#4A7C59' }}
-                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#3D6A4B')}
-                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#4A7C59')}
-                      >
-                        ✅ Completar
-                      </button>
+                      <>
+                        {(appointment.grooming_started_at || appointment.groomingStartedAt) && (
+                          <p className="text-xs font-medium text-center py-1" style={{ color: '#7C3AED' }}>
+                            ⏱ Iniciado: {new Date(appointment.grooming_started_at || appointment.groomingStartedAt!).toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        )}
+                        <button
+                          onClick={() => onStatusChange(appointment.id, 'completada')}
+                          className="w-full py-2 px-3 text-white text-xs font-semibold rounded-xl transition-colors"
+                          style={{ backgroundColor: '#4A7C59' }}
+                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#3D6A4B')}
+                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#4A7C59')}
+                        >
+                          ✅ Completar
+                        </button>
+                      </>
                     )}
                     {/* Secondary actions — 3 in a row */}
                     <div className="grid grid-cols-3 gap-2">

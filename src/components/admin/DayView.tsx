@@ -11,6 +11,7 @@ interface DayViewProps {
   onReschedule: (appointment: Appointment) => void;
   onDelete?: (id: string) => void;
   onStatusChange: (id: string, status: AppointmentStatus) => void;
+  onStartGrooming?: (id: string) => void;
 }
 
 const borderColors: Record<AppointmentStatus, string> = {
@@ -37,7 +38,7 @@ const statusLabels: Record<AppointmentStatus, string> = {
   cancelada:  'Cancelada',
 };
 
-export default function DayView({ appointments, onCancel, onReschedule, onDelete, onStatusChange }: DayViewProps) {
+export default function DayView({ appointments, onCancel, onReschedule, onDelete, onStatusChange, onStartGrooming }: DayViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
@@ -253,7 +254,7 @@ export default function DayView({ appointments, onCancel, onReschedule, onDelete
                       )}
                       {appointment.status === 'confirmada' && (
                         <button
-                          onClick={() => onStatusChange(appointment.id, 'en_proceso')}
+                          onClick={() => onStartGrooming ? onStartGrooming(appointment.id) : onStatusChange(appointment.id, 'en_proceso')}
                           className="py-1.5 px-3 text-white text-xs font-semibold rounded-xl transition-colors"
                           style={{ backgroundColor: '#7C3AED' }}
                         >
@@ -261,13 +262,20 @@ export default function DayView({ appointments, onCancel, onReschedule, onDelete
                         </button>
                       )}
                       {appointment.status === 'en_proceso' && (
-                        <button
-                          onClick={() => onStatusChange(appointment.id, 'completada')}
-                          className="py-1.5 px-3 text-white text-xs font-semibold rounded-xl transition-colors"
-                          style={{ backgroundColor: '#4A7C59' }}
-                        >
-                          ✅ Completar
-                        </button>
+                        <>
+                          {(appointment.grooming_started_at || appointment.groomingStartedAt) && (
+                            <span className="text-xs font-medium py-1.5 px-2" style={{ color: '#7C3AED' }}>
+                              ⏱ {new Date(appointment.grooming_started_at || appointment.groomingStartedAt!).toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          )}
+                          <button
+                            onClick={() => onStatusChange(appointment.id, 'completada')}
+                            className="py-1.5 px-3 text-white text-xs font-semibold rounded-xl transition-colors"
+                            style={{ backgroundColor: '#4A7C59' }}
+                          >
+                            ✅ Completar
+                          </button>
+                        </>
                       )}
                       <button
                         onClick={() => onReschedule(appointment)}
