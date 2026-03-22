@@ -237,6 +237,12 @@ export default function Dashboard() {
 
   const handleStartGrooming = async (id: string) => {
     const startedAt = new Date().toISOString();
+
+    // Actualizar UI de inmediato (optimista) para feedback instantáneo
+    setAppointments((prev) =>
+      prev.map((apt) => apt.id === id ? { ...apt, status: 'en_proceso' as AppointmentStatus, grooming_started_at: startedAt } : apt)
+    );
+
     try {
       // Intentar guardar con timestamp
       const { error } = await supabase
@@ -252,13 +258,13 @@ export default function Dashboard() {
           .eq('id', id);
         if (error2) throw error2;
       }
+
+      // Sincronizar con Supabase para confirmar que se guardó
+      fetchAppointments();
     } catch (err) {
       console.error('Error iniciando grooming:', err);
-    } finally {
-      // Siempre actualizar UI con el estado y el timestamp local
-      setAppointments((prev) =>
-        prev.map((apt) => apt.id === id ? { ...apt, status: 'en_proceso' as AppointmentStatus, grooming_started_at: startedAt } : apt)
-      );
+      // Si falló, re-sincronizar para revertir a estado real
+      fetchAppointments();
     }
   };
 
