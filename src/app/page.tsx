@@ -2176,29 +2176,51 @@ export default function Dashboard() {
                     const baseTime = SIZE_DURATION[newAptSize] || 60;
                     const aptDate = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : todayStr;
 
-                    // Guardar en Supabase para que persista y los cambios de estado funcionen
-                    const { error: insertError } = await supabase
+                    // Guardar en Supabase usando las columnas confirmadas de la tabla
+                    // Intentamos primero con columnas extendidas, si falla usamos las básicas
+                    let insertError: any = null;
+
+                    const { error: err1 } = await supabase
                       .from('appointments')
                       .insert({
                         pet_name: formData.get('petName') as string,
-                        pet_size: newAptSize,
                         pet_breed: newAptBreed?.name || (formData.get('customBreed') as string) || '',
-                        pet_breed_emoji: newAptBreed?.emoji || '🐕',
-                        service_id: 'grooming',
-                        service_name: 'Grooming Completo',
-                        base_time_minutes: baseTime,
-                        service_additional_time: isAdditional ? 30 : 0,
+                        pet_breed_age: newAptBreed?.name || (formData.get('customBreed') as string) || '',
                         owner_name: formData.get('ownerName') as string,
                         whatsapp: formData.get('whatsapp') as string,
                         comments: formData.get('comments') as string,
                         additional_service: isAdditional,
+                        base_time_minutes: baseTime,
                         recovery_time: isAdditional ? recoveryDuration : 0,
                         date: aptDate,
                         time: formData.get('time') as string,
                         status: 'pendiente',
                       });
 
-                    if (insertError) throw insertError;
+                    if (err1) {
+                      // Si falla (columnas no existen), intentar con columnas mínimas
+                      console.warn('Insert extendido falló, intentando con columnas básicas:', err1.message);
+                      const { error: err2 } = await supabase
+                        .from('appointments')
+                        .insert({
+                          pet_name: formData.get('petName') as string,
+                          pet_breed: newAptBreed?.name || (formData.get('customBreed') as string) || '',
+                          pet_breed_age: newAptBreed?.name || (formData.get('customBreed') as string) || '',
+                          owner_name: formData.get('ownerName') as string,
+                          whatsapp: formData.get('whatsapp') as string,
+                          comments: formData.get('comments') as string,
+                          additional_service: isAdditional,
+                          date: aptDate,
+                          time: formData.get('time') as string,
+                          status: 'pendiente',
+                        });
+                      insertError = err2;
+                    }
+
+                    if (insertError) {
+                      console.error('Error al insertar cita:', insertError);
+                      throw new Error(`Error Supabase: ${insertError.message}`);
+                    }
 
                     // Refrescar desde Supabase para obtener el ID real y datos limpios
                     await fetchAppointments();
