@@ -238,9 +238,19 @@ export default function Dashboard() {
   };
 
   const updateStatus = async (id: string, newStatus: AppointmentStatus) => {
+    // Validar que el ID sea un UUID real de Supabase (no un timestamp falso)
+    // Los UUIDs tienen formato xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+    const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    if (!isValidUUID) {
+      // Esta cita fue creada con código viejo y no existe en Supabase.
+      // Refrescamos desde Supabase para limpiar citas fantasma del estado local.
+      console.warn('ID de cita inválido (no UUID):', id, '— refrescando desde Supabase');
+      await fetchAppointments();
+      return;
+    }
+
     setUpdatingId(id);
     // Actualización optimista inmediata — la cita nunca desaparece de la vista
-    // mientras espera la confirmación de Supabase
     setAppointments(prev =>
       prev.map(apt => apt.id === id ? { ...apt, status: newStatus } : apt)
     );
@@ -251,11 +261,9 @@ export default function Dashboard() {
         .eq('id', id);
 
       if (error) throw error;
-      // Sincronizar con Supabase para confirmar el estado real
       await fetchAppointments();
     } catch (err) {
       console.error('Error updating status:', err);
-      // Si falló, revertir al estado real de Supabase
       await fetchAppointments();
     } finally {
       setUpdatingId(null);
@@ -263,6 +271,14 @@ export default function Dashboard() {
   };
 
   const handleStartGrooming = async (id: string) => {
+    // Validar UUID antes de intentar actualizar en Supabase
+    const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    if (!isValidUUID) {
+      console.warn('ID de cita inválido para grooming:', id);
+      await fetchAppointments();
+      return;
+    }
+
     const startedAt = new Date().toISOString();
 
     // Actualizar UI de inmediato (optimista) para feedback instantáneo
