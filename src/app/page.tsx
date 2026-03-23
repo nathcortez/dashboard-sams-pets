@@ -239,6 +239,11 @@ export default function Dashboard() {
 
   const updateStatus = async (id: string, newStatus: AppointmentStatus) => {
     setUpdatingId(id);
+    // Actualización optimista inmediata — la cita nunca desaparece de la vista
+    // mientras espera la confirmación de Supabase
+    setAppointments(prev =>
+      prev.map(apt => apt.id === id ? { ...apt, status: newStatus } : apt)
+    );
     try {
       const { error } = await supabase
         .from('appointments')
@@ -246,9 +251,12 @@ export default function Dashboard() {
         .eq('id', id);
 
       if (error) throw error;
-      fetchAppointments();
+      // Sincronizar con Supabase para confirmar el estado real
+      await fetchAppointments();
     } catch (err) {
       console.error('Error updating status:', err);
+      // Si falló, revertir al estado real de Supabase
+      await fetchAppointments();
     } finally {
       setUpdatingId(null);
     }
@@ -2169,7 +2177,7 @@ export default function Dashboard() {
                     const aptDate = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : todayStr;
 
                     // Guardar en Supabase para que persista y los cambios de estado funcionen
-                    const { data: saved, error: insertError } = await supabase
+                    const { error: insertError } = await supabase
                       .from('appointments')
                       .insert({
                         pet_name: formData.get('petName') as string,
@@ -2188,9 +2196,7 @@ export default function Dashboard() {
                         date: aptDate,
                         time: formData.get('time') as string,
                         status: 'pendiente',
-                      })
-                      .select()
-                      .single();
+                      });
 
                     if (insertError) throw insertError;
 
