@@ -2291,11 +2291,31 @@ export default function Dashboard() {
                   <h4 className="text-sm font-semibold text-gray-700 mb-3">Hora</h4>
                   <select name="time" required className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E8943D] text-sm">
                     <option value="">Seleccionar hora disponible</option>
-                    {TIME_SLOTS.filter(time => {
+                    {TIME_SLOTS.filter(slotTime => {
                       const dateKey = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : todayStr;
-                      return !appointments.some(a => a.date === dateKey && a.time === time && a.status !== 'cancelada');
-                    }).map(time => (
-                      <option key={time} value={time}>{time}</option>
+                      const [slotH, slotM] = slotTime.split(':').map(Number);
+                      const slotStart = slotH * 60 + slotM;
+                      // Duración de la nueva cita según tamaño elegido (60 min por defecto si aún no se eligió)
+                      const newDuration = newAptSize ? SIZE_DURATION[newAptSize] : 60;
+                      const slotEnd = slotStart + newDuration;
+
+                      // Bloquear el slot si se superpone con cualquier cita existente,
+                      // considerando su duración completa (base + servicio adicional + recuperación)
+                      return !appointments.some(a => {
+                        if (a.date !== dateKey || a.status === 'cancelada') return false;
+                        const [ah, am] = a.time.split(':').map(Number);
+                        const aStart = ah * 60 + am;
+                        const aDuration =
+                          (a.base_time_minutes || a.baseTimeMinutes || 60)
+                          + (a.service_additional_time || a.serviceAdditionalTime || 0)
+                          + (a.recovery_time || a.recoveryTime || 0);
+                        const aEnd = aStart + aDuration;
+                        // Hay solapamiento si el nuevo slot empieza antes de que termine la cita
+                        // existente Y el nuevo slot termina después de que empiece esa cita
+                        return slotStart < aEnd && slotEnd > aStart;
+                      });
+                    }).map(slotTime => (
+                      <option key={slotTime} value={slotTime}>{slotTime}</option>
                     ))}
                   </select>
                 </div>

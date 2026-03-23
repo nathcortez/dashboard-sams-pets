@@ -1,8 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Appointment, TIME_SLOTS } from '@/types/appointment';
+
+interface DayAppointment {
+  id: string;
+  time: string;
+  base_time_minutes?: number;
+  service_additional_time?: number;
+  recovery_time?: number;
+}
 
 interface RescheduleModalProps {
   isOpen: boolean;
@@ -16,6 +24,52 @@ export default function RescheduleModal({ isOpen, onClose, appointment, onSucces
   const [error, setError] = useState<string | null>(null);
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
+  const [dayAppointments, setDayAppointments] = useState<DayAppointment[]>([]);
+
+  // Cuando cambia la fecha destino, cargar las citas de ese día
+  // para poder filtrar slots ocupados con su duración real
+  useEffect(() => {
+    if (!isOpen) return;
+    const targetDate = date || appointment?.date || '';
+    if (!targetDate) return;
+
+    const fetchDay = async () => {
+      const { data } = await supabase
+        .from('appointments')
+        .select('id, time, base_time_minutes, service_additional_time, recovery_time')
+        .eq('date', targetDate)
+        .neq('status', 'cancelada');
+      // Excluir la propia cita que se está re-agendando
+      setDayAppointments((data || []).filter(a => a.id !== appointment?.id));
+    };
+
+    fetchDay();
+  }, [date, isOpen, appointment?.id, appointment?.date]);
+
+  // Calcular la duración total de la cita que se va a re-agendar
+  const currentDuration = appointment
+    ? (appointment.base_time_minutes || appointment.baseTimeMinutes || 60)
+      + (appointment.service_additional_time || appointment.serviceAdditionalTime || 0)
+      + (appointment.recovery_time || appointment.recoveryTime || 0)
+    : 60;
+
+  // Horarios disponibles: excluye slots que se solapen con citas existentes
+  const availableTimeSlots = TIME_SLOTS.filter(slot => {
+    const [slotH, slotM] = slot.split(':').map(Number);
+    const slotStart = slotH * 60 + slotM;
+    const slotEnd = slotStart + currentDuration;
+
+    return !dayAppointments.some(apt => {
+      const [ah, am] = apt.time.split(':').map(Number);
+      const aStart = ah * 60 + am;
+      const aDuration =
+        (apt.base_time_minutes || 60)
+        + (apt.service_additional_time || 0)
+        + (apt.recovery_time || 0);
+      const aEnd = aStart + aDuration;
+      return slotStart < aEnd && slotEnd > aStart;
+    });
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,15 +143,21 @@ export default function RescheduleModal({ isOpen, onClose, appointment, onSucces
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Nueva Fecha *</label>
-              <input type="date" value={date || appointment.date} onChange={(e) => setDate(e.target.value)} min={today} className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[--azul-principal] focus:border-transparent" required />
+              <input type="date" value={date || appointment.date} onChange={(e) => { setDate(e.target.value); setTime(''); }} min={today} className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[--azul-principal] focus:border-transparent" required />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Nueva Hora *</label>
-              <select value={time || appointment.time} onChange={(e) => setTime(e.target.value)} className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[--azul-principal] focus:border-transparent" required>
-                {TIME_SLOTS.map((slot) => (
-                  <option key={slot} value={slot}>{slot}</option>
-                ))}
-              </select>
+              {availableTimeSlots.length === 0 ? (
+                <div className="px-4 py-2 bg-yellow-50 border border-yellow-200 rounded-xl text-yellow-700 text-sm">
+                  No hay horarios disponibles para este día
+                </div>
+              ) : (
+                <select value={time || appointment.time} onChange={(e) => setTime(e.target.value)} className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[--azul-principal] focus:border-transparent" required>
+                  {availableTimeSlots.map((slot) => (
+                    <option key={slot} value={slot}>{slot}</option>
+                  ))}
+                </select>
+              )}
             </div>
           </div>
 
