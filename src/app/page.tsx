@@ -102,6 +102,7 @@ export default function Dashboard() {
   ]);
   const [serviceModal, setServiceModal] = useState<{ mode: 'add' | 'edit'; service?: typeof services[0] } | null>(null);
   const [newAppointmentModal, setNewAppointmentModal] = useState(false);
+  const [newAptSaving, setNewAptSaving] = useState(false);
   const [editServiceModal, setEditServiceModal] = useState<{ appointment: Appointment; serviceId: string; additionalService: boolean; recoveryTime: number } | null>(null);
 
   // Estado para selector de raza en nueva cita
@@ -2155,37 +2156,55 @@ export default function Dashboard() {
                 <p className="text-sm text-gray-500">{selectedDate ? format(selectedDate as Date, 'EEEE d MMMM', { locale: es }) : 'Sin fecha seleccionada'}</p>
               </div>
               <form
-                onSubmit={(e) => {
+                onSubmit={async (e) => {
                   e.preventDefault();
-                  const formData = new FormData(e.currentTarget);
-                  const isAdditional = (formData.get('additionalService') as string) === 'on';
-                  const recoveryDuration = services.find(s => s.isAdditional)?.duration || 45;
-                  const baseTime = SIZE_DURATION[newAptSize] || 60;
+                  if (newAptSaving) return;
+                  setNewAptSaving(true);
 
-                  const newAppointment: Appointment = {
-                    id: Date.now().toString(),
-                    createdAt: new Date().toISOString(),
-                    petName: formData.get('petName') as string,
-                    petSize: newAptSize,
-                    petBreed: newAptBreed?.name || (formData.get('customBreed') as string) || '',
-                    petBreedEmoji: newAptBreed?.emoji || '🐕',
-                    serviceId: 'grooming',
-                    serviceName: 'Grooming Completo',
-                    baseTimeMinutes: baseTime,
-                    ownerName: formData.get('ownerName') as string,
-                    whatsapp: formData.get('whatsapp') as string,
-                    comments: formData.get('comments') as string,
-                    additionalService: isAdditional,
-                    recoveryTime: isAdditional ? recoveryDuration : 0,
-                    date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : todayStr,
-                    time: formData.get('time') as string,
-                    status: 'pendiente',
-                  };
+                  try {
+                    const formData = new FormData(e.currentTarget);
+                    const isAdditional = (formData.get('additionalService') as string) === 'on';
+                    const recoveryDuration = services.find(s => s.isAdditional)?.duration || 45;
+                    const baseTime = SIZE_DURATION[newAptSize] || 60;
+                    const aptDate = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : todayStr;
 
-                  setAppointments([...appointments, newAppointment]);
-                  setNewAppointmentModal(false);
-                  setNewAptSize('');
-                  setNewAptBreed(null);
+                    // Guardar en Supabase para que persista y los cambios de estado funcionen
+                    const { data: saved, error: insertError } = await supabase
+                      .from('appointments')
+                      .insert({
+                        pet_name: formData.get('petName') as string,
+                        pet_size: newAptSize,
+                        pet_breed: newAptBreed?.name || (formData.get('customBreed') as string) || '',
+                        pet_breed_emoji: newAptBreed?.emoji || '🐕',
+                        service_id: 'grooming',
+                        service_name: 'Grooming Completo',
+                        base_time_minutes: baseTime,
+                        service_additional_time: isAdditional ? 30 : 0,
+                        owner_name: formData.get('ownerName') as string,
+                        whatsapp: formData.get('whatsapp') as string,
+                        comments: formData.get('comments') as string,
+                        additional_service: isAdditional,
+                        recovery_time: isAdditional ? recoveryDuration : 0,
+                        date: aptDate,
+                        time: formData.get('time') as string,
+                        status: 'pendiente',
+                      })
+                      .select()
+                      .single();
+
+                    if (insertError) throw insertError;
+
+                    // Refrescar desde Supabase para obtener el ID real y datos limpios
+                    await fetchAppointments();
+                    setNewAppointmentModal(false);
+                    setNewAptSize('');
+                    setNewAptBreed(null);
+                  } catch (err) {
+                    console.error('Error guardando cita:', err);
+                    alert('Error al guardar la cita. Intenta de nuevo.');
+                  } finally {
+                    setNewAptSaving(false);
+                  }
                 }}
                 className="p-6 space-y-4"
               >
@@ -2354,10 +2373,10 @@ export default function Dashboard() {
                   </button>
                   <button
                     type="submit"
-                    disabled={!newAptSize}
+                    disabled={!newAptSize || newAptSaving}
                     className="flex-1 px-4 py-2 bg-[#E8943D] hover:bg-[#E8943D]/90 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Crear Cita
+                    {newAptSaving ? 'Guardando...' : 'Crear Cita'}
                   </button>
                 </div>
               </form>
