@@ -59,8 +59,12 @@ export default function NewAppointmentModal({ isOpen, onClose, onSuccess, select
   const [additionalService, setAdditionalService] = useState(false);
   const [dayAppointments, setDayAppointments] = useState<ExistingAppointment[]>([]);
 
-  // Cargar citas del día cuando cambia la fecha seleccionada
+  // Cargar citas del día cuando cambia la fecha seleccionada O cuando el modal se abre.
+  // Incluir isOpen en las dependencias garantiza que siempre se traigan datos frescos
+  // desde Supabase al abrir el modal — así un slot cancelado queda disponible de inmediato.
   useEffect(() => {
+    if (!isOpen) return;
+
     const fetchDayAppointments = async () => {
       if (!appointmentDate) {
         setDayAppointments([]);
@@ -77,7 +81,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onSuccess, select
     };
 
     fetchDayAppointments();
-  }, [appointmentDate]);
+  }, [appointmentDate, isOpen]);
 
   // Resetear hora cuando cambia additionalService (afecta duración)
   useEffect(() => {

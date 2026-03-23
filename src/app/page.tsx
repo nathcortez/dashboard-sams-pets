@@ -167,15 +167,33 @@ export default function Dashboard() {
     }
   }, [user, currentView, canViewClients, canViewReports]);
 
-  // Fetch appointments y polling cada 30 segundos
+  // Fetch appointments + suscripción real-time para reflejar cancelaciones al instante
   useEffect(() => {
     fetchAppointments();
 
+    // Polling de respaldo cada 60 segundos (por si falla el canal real-time)
     const interval = setInterval(() => {
       fetchAppointments();
-    }, 30000);
+    }, 60000);
 
-    return () => clearInterval(interval);
+    // Suscripción real-time: cualquier cambio en appointments (INSERT, UPDATE, DELETE)
+    // dispara un re-fetch inmediato. Esto asegura que al cancelar una cita,
+    // el slot quede libre al instante sin esperar el intervalo de polling.
+    const channel = supabase
+      .channel('page-appointments-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'appointments' },
+        () => {
+          fetchAppointments();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      clearInterval(interval);
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const deleteClientAppointments = async (phone: string, name: string) => {
