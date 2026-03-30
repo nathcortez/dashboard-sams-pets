@@ -105,8 +105,9 @@ export default function NewAppointmentModal({ isOpen, onClose, onSuccess, select
     const slotStart = slotHour * 60 + slotMinute;
 
     // Duración estimada de la nueva cita:
-    // sin servicio adicional → 45 min (1.5 slots), con servicio → 90 min (3 slots)
-    const newAppointmentDuration = additionalService ? 90 : 45;
+    // sin servicio adicional → 30 min (1 slot exacto), con servicio → 60 min (2 slots)
+    // Usar 30 min garantiza que un slot libre entre dos citas ocupadas sí aparece disponible.
+    const newAppointmentDuration = additionalService ? 60 : 30;
     const slotEnd = slotStart + newAppointmentDuration;
 
     // Verificar si este slot se overlapa con alguna cita existente
