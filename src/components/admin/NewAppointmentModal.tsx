@@ -10,6 +10,7 @@ interface ExistingAppointment {
   id: string;
   date: string;
   time: string;
+  status?: string;
   base_time_minutes?: number;
   service_additional_time?: number;
   recovery_time?: number;
@@ -73,10 +74,11 @@ export default function NewAppointmentModal({ isOpen, onClose, onSuccess, select
 
       const { data } = await supabase
         .from('appointments')
-        .select('id, date, time, base_time_minutes, service_additional_time, recovery_time')
+        .select('id, date, time, base_time_minutes, service_additional_time, recovery_time, status')
         .eq('date', appointmentDate)
         .neq('status', 'cancelada');
 
+      console.log('[Slots] Citas del día', appointmentDate, ':', data);
       setDayAppointments(data || []);
     };
 
@@ -111,7 +113,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onSuccess, select
     const slotEnd = slotStart + newAppointmentDuration;
 
     // Verificar si este slot se overlapa con alguna cita existente
-    const isOccupied = dayAppointments.some(apt => {
+    const blockingApt = dayAppointments.find(apt => {
       const [aptHour, aptMinute] = apt.time.split(':').map(Number);
       const aptStart = aptHour * 60 + aptMinute;
       const aptDuration = getAppointmentDuration(apt);
@@ -121,7 +123,11 @@ export default function NewAppointmentModal({ isOpen, onClose, onSuccess, select
       return (slotStart < aptEnd && slotEnd > aptStart);
     });
 
-    return !isOccupied;
+    if (blockingApt) {
+      console.log(`[Slots] ${slot} BLOQUEADO por cita a las ${blockingApt.time} (base_time_minutes=${blockingApt.base_time_minutes})`);
+    }
+
+    return !blockingApt;
   });
 
   useEffect(() => {
