@@ -2362,20 +2362,14 @@ export default function Dashboard() {
                       const newDuration = newAptSize ? SIZE_DURATION[newAptSize] : 60;
                       const slotEnd = slotStart + newDuration;
 
-                      // Un slot está disponible si ninguna cita existente ocupa ese horario exacto.
-                      // Cada cita ocupa 1 slot = 30 min. Usar default 30 (no 60) evita que
-                      // la cita de 14:30 "bloquee" el slot de 15:00 por duración inflada.
-                      return !appointments.some(a => {
-                        if (a.date !== dateKey || a.status === 'cancelada') return false;
-                        const [ah, am] = a.time.split(':').map(Number);
-                        const aStart = ah * 60 + am;
-                        const aDuration =
-                          (a.base_time_minutes || a.baseTimeMinutes || 30)
-                          + (a.service_additional_time || a.serviceAdditionalTime || 0)
-                          + (a.recovery_time || a.recoveryTime || 0);
-                        const aEnd = aStart + aDuration;
-                        return slotStart < aEnd && slotEnd > aStart;
-                      });
+                      // DISPONIBILIDAD: un slot está BLOQUEADO solo si hay una cita
+                      // a ESA HORA EXACTA. Ignoramos duración para no bloquear
+                      // el slot siguiente (cita 14:30 NO debe bloquear 15:00).
+                      return !appointments.some(a =>
+                        a.date === dateKey &&
+                        a.status !== 'cancelada' &&
+                        a.time === slotTime
+                      );
                     }).map(slotTime => (
                       <option key={slotTime} value={slotTime}>{slotTime}</option>
                     ))}
