@@ -660,28 +660,30 @@ export default function Dashboard() {
             return (
               <button
                 key={dateKey}
-                onClick={() => { if (!isPast && !isWeekend) { setSelectedDate(day); setExpandedAppointment(null); } }}
-                disabled={isWeekend || isPast}
+                // Días pasados son clickeables (solo lectura — no se pueden crear citas)
+                // Solo los fines de semana quedan deshabilitados
+                onClick={() => { if (!isWeekend) { setSelectedDate(day); setExpandedAppointment(null); } }}
+                disabled={isWeekend}
                 className={`
                   max-h-[44px] aspect-square rounded-[8px] border transition-all flex flex-col items-center justify-center relative
                   ${isWeekend ? 'bg-[#FAF7F3] cursor-not-allowed' : ''}
-                  ${isPast ? 'cursor-not-allowed' : ''}
-                  ${isSelected && isTodayDate && !isWeekend && !isPast ? 'bg-[#4A7C59] border-2 border-gray-800' : ''}
-                  ${isSelected && !isTodayDate && !isWeekend && !isPast ? 'bg-[#4A7C59]' : ''}
-                  ${isTodayDate && !isSelected && !isWeekend && !isPast ? 'bg-white border-2 border-[#4A7C59]' : ''}
-                  ${!isSelected && !isTodayDate && !isWeekend && !isPast ? 'border-transparent hover:bg-[#F5F3EE]' : ''}
+                  ${isPast && !isWeekend ? 'opacity-50 hover:opacity-80' : ''}
+                  ${isSelected && isTodayDate && !isWeekend ? 'bg-[#4A7C59] border-2 border-gray-800' : ''}
+                  ${isSelected && !isTodayDate && !isWeekend ? 'bg-[#4A7C59]' : ''}
+                  ${isTodayDate && !isSelected && !isWeekend ? 'bg-white border-2 border-[#4A7C59]' : ''}
+                  ${!isSelected && !isTodayDate && !isWeekend ? 'border-transparent hover:bg-[#F5F3EE]' : ''}
                 `}
               >
                 <span className={`
                   text-sm font-medium
-                  ${isWeekend || isPast ? 'text-[#C5C5C5]' : isSelected ? 'text-white' : isTodayDate ? 'text-[#4A7C59]' : 'text-[#1C1C1C]'}
+                  ${isWeekend ? 'text-[#C5C5C5]' : isSelected ? 'text-white' : isTodayDate ? 'text-[#4A7C59]' : 'text-[#1C1C1C]'}
                 `}>
                   {format(day, 'd')}
                 </span>
-                {count > 0 && !isWeekend && !isPast && (
+                {count > 0 && !isWeekend && (
                   <span className={`
                     absolute bottom-0.5 h-[3px] rounded-[2px]
-                    ${isSelected ? 'bg-white w-5' : isTodayDate ? 'bg-[#4A7C59] w-5' : count <= 2 ? 'bg-[#A8D5B5] w-3' : count <= 4 ? 'bg-[#F5C842] w-4' : 'bg-[#C97B5A] w-5'}
+                    ${isSelected ? 'bg-white w-5' : isTodayDate ? 'bg-[#4A7C59] w-5' : isPast ? 'bg-[#9E9E9E] w-3' : count <= 2 ? 'bg-[#A8D5B5] w-3' : count <= 4 ? 'bg-[#F5C842] w-4' : 'bg-[#C97B5A] w-5'}
                   `} />
                 )}
               </button>
@@ -700,11 +702,19 @@ export default function Dashboard() {
       {/* Columna derecha (60%) - Detalle del día */}
       <div className="w-3/5 bg-white rounded-xl shadow-sm border p-5 flex flex-col">
         {/* Header */}
+        {(() => {
+          const isSelectedPast = selectedDate ? startOfDay(selectedDate) < startOfDay(new Date()) : false;
+          return (
         <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#E8E4DC]">
-          <h3 className="text-[16px] font-semibold text-[#1C1C1C]">
-            {selectedDate ? `${format(selectedDate, 'EEEE d', { locale: es }).charAt(0).toUpperCase() + format(selectedDate, 'EEEE d', { locale: es }).slice(1)} de ${format(selectedDate, 'MMMM', { locale: es }).charAt(0).toUpperCase() + format(selectedDate, 'MMMM', { locale: es }).slice(1)}` : ''}
-          </h3>
-          {selectedDate && selectedDateAppointments.length > 0 && (
+          <div>
+            <h3 className="text-[16px] font-semibold text-[#1C1C1C]">
+              {selectedDate ? `${format(selectedDate, 'EEEE d', { locale: es }).charAt(0).toUpperCase() + format(selectedDate, 'EEEE d', { locale: es }).slice(1)} de ${format(selectedDate, 'MMMM', { locale: es }).charAt(0).toUpperCase() + format(selectedDate, 'MMMM', { locale: es }).slice(1)}` : ''}
+            </h3>
+            {isSelectedPast && selectedDate && (
+              <span className="text-xs text-[#9E9E9E]">📋 Solo lectura — día pasado</span>
+            )}
+          </div>
+          {selectedDate && selectedDateAppointments.length > 0 && !isSelectedPast && (
             <button
               onClick={() => setNewAppointmentModal(true)}
               className="flex items-center gap-1 px-3 py-1.5 text-sm text-[#4A7C59] hover:bg-[#EEF4F0] rounded-lg transition-colors"
@@ -716,6 +726,8 @@ export default function Dashboard() {
             </button>
           )}
         </div>
+          );
+        })()}
 
         {/* Lista de citas - scroll interno */}
         {!selectedDate ? (
@@ -732,12 +744,14 @@ export default function Dashboard() {
               🐾
             </div>
             <p className="text-[#4A4A4A] font-medium mb-4">Sin citas para este día</p>
-            <button
-              onClick={() => setNewAppointmentModal(true)}
-              className="px-5 py-2.5 bg-[#4A7C59] hover:bg-[#3D6A4B] text-white text-sm font-medium rounded-[8px] transition-colors"
-            >
-              + Agendar cita
-            </button>
+            {startOfDay(selectedDate) >= startOfDay(new Date()) && (
+              <button
+                onClick={() => setNewAppointmentModal(true)}
+                className="px-5 py-2.5 bg-[#4A7C59] hover:bg-[#3D6A4B] text-white text-sm font-medium rounded-[8px] transition-colors"
+              >
+                + Agendar cita
+              </button>
+            )}
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto space-y-3 pr-1">
