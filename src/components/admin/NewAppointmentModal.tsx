@@ -88,9 +88,12 @@ export default function NewAppointmentModal({ isOpen, onClose, onSuccess, select
     setTime('08:00');
   }, [additionalService]);
 
-  // Calcular duración total de una cita existente
+  // Calcular duración total de una cita existente.
+  // El default es 30 min porque los slots están cada 30 min — así una cita a las 10:30
+  // termina a las 11:00 exacto y no bloquea el slot siguiente.
+  // Si la cita tiene base_time_minutes guardado en BD, se respeta ese valor.
   const getAppointmentDuration = (apt: ExistingAppointment): number => {
-    const base = apt.base_time_minutes || 45;
+    const base = apt.base_time_minutes || 30;
     const service = apt.service_additional_time || 0;
     const recovery = apt.recovery_time || 0;
     return base + service + recovery;
@@ -101,8 +104,9 @@ export default function NewAppointmentModal({ isOpen, onClose, onSuccess, select
     const [slotHour, slotMinute] = slot.split(':').map(Number);
     const slotStart = slotHour * 60 + slotMinute;
 
-    // Duración por defecto de una nueva cita (45 min base + 30 min servicio = 75 min)
-    const newAppointmentDuration = additionalService ? 120 : 75;
+    // Duración estimada de la nueva cita:
+    // sin servicio adicional → 45 min (1.5 slots), con servicio → 90 min (3 slots)
+    const newAppointmentDuration = additionalService ? 90 : 45;
     const slotEnd = slotStart + newAppointmentDuration;
 
     // Verificar si este slot se overlapa con alguna cita existente
