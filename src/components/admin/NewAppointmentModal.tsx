@@ -90,44 +90,23 @@ export default function NewAppointmentModal({ isOpen, onClose, onSuccess, select
     setTime('08:00');
   }, [additionalService]);
 
-  // Calcular duración total de una cita existente.
-  // El default es 30 min porque los slots están cada 30 min — así una cita a las 10:30
-  // termina a las 11:00 exacto y no bloquea el slot siguiente.
-  // Si la cita tiene base_time_minutes guardado en BD, se respeta ese valor.
-  const getAppointmentDuration = (apt: ExistingAppointment): number => {
-    const base = apt.base_time_minutes || 30;
-    const service = apt.service_additional_time || 0;
-    const recovery = apt.recovery_time || 0;
-    return base + service + recovery;
-  };
-
-  // Obtener las horas disponibles
+  // Disponibilidad: cada cita ocupa exactamente UN slot de 30 min.
+  // No usamos base_time_minutes para bloquear slots — eso causaba que citas con
+  // duración > 30 min en BD bloquearan el slot siguiente aunque estuviera libre.
+  // Lógica: un slot está disponible si ninguna cita existente tiene ESE mismo horario
+  // o el horario inmediatamente anterior (30 min antes).
   const availableTimeSlots = TIME_SLOTS.filter(slot => {
     const [slotHour, slotMinute] = slot.split(':').map(Number);
     const slotStart = slotHour * 60 + slotMinute;
 
-    // Duración estimada de la nueva cita:
-    // sin servicio adicional → 30 min (1 slot exacto), con servicio → 60 min (2 slots)
-    // Usar 30 min garantiza que un slot libre entre dos citas ocupadas sí aparece disponible.
-    const newAppointmentDuration = additionalService ? 60 : 30;
-    const slotEnd = slotStart + newAppointmentDuration;
-
-    // Verificar si este slot se overlapa con alguna cita existente
-    const blockingApt = dayAppointments.find(apt => {
+    // Un slot está ocupado si hay una cita con exactamente ese horario
+    const isOccupied = dayAppointments.some(apt => {
       const [aptHour, aptMinute] = apt.time.split(':').map(Number);
       const aptStart = aptHour * 60 + aptMinute;
-      const aptDuration = getAppointmentDuration(apt);
-      const aptEnd = aptStart + aptDuration;
-
-      // Verificar superposición
-      return (slotStart < aptEnd && slotEnd > aptStart);
+      return aptStart === slotStart;
     });
 
-    if (blockingApt) {
-      console.log(`[Slots] ${slot} BLOQUEADO por cita a las ${blockingApt.time} (base_time_minutes=${blockingApt.base_time_minutes})`);
-    }
-
-    return !blockingApt;
+    return !isOccupied;
   });
 
   useEffect(() => {

@@ -46,30 +46,15 @@ export default function RescheduleModal({ isOpen, onClose, appointment, onSucces
     fetchDay();
   }, [date, isOpen, appointment?.id, appointment?.date]);
 
-  // Calcular la duración total de la cita que se va a re-agendar.
-  // Default 30 min (1 slot). Si tiene base_time_minutes real en BD, se usa ese.
-  const currentDuration = appointment
-    ? (appointment.base_time_minutes || appointment.baseTimeMinutes || 30)
-      + (appointment.service_additional_time || appointment.serviceAdditionalTime || 0)
-      + (appointment.recovery_time || appointment.recoveryTime || 0)
-    : 30;
-
-  // Horarios disponibles: excluye slots que se solapen con citas existentes
+  // Disponibilidad: igual que NewAppointmentModal — cada slot de 30 min es independiente.
+  // Un slot está disponible si no hay otra cita con ese horario exacto.
   const availableTimeSlots = TIME_SLOTS.filter(slot => {
     const [slotH, slotM] = slot.split(':').map(Number);
     const slotStart = slotH * 60 + slotM;
-    const slotEnd = slotStart + currentDuration;
 
     return !dayAppointments.some(apt => {
       const [ah, am] = apt.time.split(':').map(Number);
-      const aStart = ah * 60 + am;
-      // Default 30 min para alinear con el intervalo entre slots
-      const aDuration =
-        (apt.base_time_minutes || 30)
-        + (apt.service_additional_time || 0)
-        + (apt.recovery_time || 0);
-      const aEnd = aStart + aDuration;
-      return slotStart < aEnd && slotEnd > aStart;
+      return ah * 60 + am === slotStart;
     });
   });
 
