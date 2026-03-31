@@ -98,12 +98,20 @@ export default function NewAppointmentModal({ isOpen, onClose, onSuccess, select
   const availableTimeSlots = TIME_SLOTS.filter(slot => {
     const [slotHour, slotMinute] = slot.split(':').map(Number);
     const slotStart = slotHour * 60 + slotMinute;
+    const slotEnd = slotStart + 30; // duración mínima de un slot
 
-    // Un slot está ocupado si hay una cita con exactamente ese horario
     const isOccupied = dayAppointments.some(apt => {
+      if (apt.status === 'cancelada') return false;
       const [aptHour, aptMinute] = apt.time.split(':').map(Number);
       const aptStart = aptHour * 60 + aptMinute;
-      return aptStart === slotStart;
+      const aptDuration =
+        (apt.base_time_minutes || 30) +
+        (apt.service_additional_time || 0) +
+        (apt.recovery_time || 0);
+      const aptEnd = aptStart + aptDuration;
+
+      // Bloquear si hay solapamiento real considerando duración
+      return slotStart < aptEnd && slotEnd > aptStart;
     });
 
     return !isOccupied;
