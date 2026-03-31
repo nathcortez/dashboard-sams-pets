@@ -300,13 +300,18 @@ export default function NewAppointmentModal({ isOpen, onClose, onSuccess, select
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Fecha *</label>
                 <input
-                  type="date"
-                  value={appointmentDate}
-                  onChange={(e) => setAppointmentDate(e.target.value)}
-                  min={format(new Date(), 'yyyy-MM-dd')}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[--azul-principal] focus:border-transparent"
-                  required
-                />
+  type="date"
+  value={appointmentDate}
+  onChange={(e) => {
+    const selected = new Date(e.target.value + 'T00:00:00');
+    const day = selected.getDay();
+    if (day === 0 || day === 6) return; // Bloquear sábado y domingo
+    setAppointmentDate(e.target.value);
+  }}
+  min={format(new Date(), 'yyyy-MM-dd')}
+  className="w-full px-4 py-2 border border-gray-200 rounded-xl focu"
+  required
+/>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Hora *</label>
