@@ -110,16 +110,18 @@ export default function Dashboard() {
   const [newAptBreed, setNewAptBreed] = useState<{ name: string; emoji: string } | null>(null);
 
   // Estado para configuracion
-  const [config, setConfig] = useState({
-    workDays: ['1', '2', '3', '4', '5'], // Lun-Vie por defecto
+ const [config, setConfig] = useState({
+    workDays: ['1', '2', '3', '4', '5'],
     openTime: '08:00',
-    closeTime: '15:00',
-    lastAppointmentTime: '14:00',
-    lunchStart: '13:00',
-    lunchEnd: '14:00',
+    closeTime: '18:00',
+    lastAppointmentTime: '16:00',
+    lunchStart: '12:00',
+    lunchEnd: '13:00',
     lunchEnabled: true,
     holidays: [] as string[],
   });
+  const [configLoading, setConfigLoading] = useState(false);
+  const [configSaved, setConfigSaved] = useState(false);
 
   // Usuario y autenticación
   const [user, setUser] = useState<User | null>(null);
@@ -146,6 +148,58 @@ export default function Dashboard() {
   };
 
   const userPermissions: readonly Permission[] = user ? PERMISSIONS[user.role] : [];
+  // Cargar configuración desde Supabase al iniciar
+  useEffect(() => {
+    const loadConfig = async () => {
+      const { data } = await supabase
+        .from('business_config')
+        .select('*')
+        .eq('id', 'main')
+        .single();
+
+      if (data) {
+        setConfig({
+          workDays: data.work_days || ['1','2','3','4','5'],
+          openTime: data.open_time || '08:00',
+          closeTime: data.close_time || '18:00',
+          lastAppointmentTime: data.last_appointment_time || '16:00',
+          lunchStart: data.lunch_start || '12:00',
+          lunchEnd: data.lunch_end || '13:00',
+          lunchEnabled: data.lunch_enabled ?? true,
+          holidays: data.holidays || [],
+        });
+      }
+    };
+    loadConfig();
+  }, []);
+
+  // Guardar configuración en Supabase
+  const saveConfig = async () => {
+    setConfigLoading(true);
+    setConfigSaved(false);
+    try {
+      await supabase
+        .from('business_config')
+        .update({
+          work_days: config.workDays,
+          open_time: config.openTime,
+          close_time: config.closeTime,
+          last_appointment_time: config.lastAppointmentTime,
+          lunch_start: config.lunchStart,
+          lunch_end: config.lunchEnd,
+          lunch_enabled: config.lunchEnabled,
+          holidays: config.holidays,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', 'main');
+      setConfigSaved(true);
+      setTimeout(() => setConfigSaved(false), 3000);
+    } catch (err) {
+      console.error('Error guardando configuración:', err);
+    } finally {
+      setConfigLoading(false);
+    }
+  };
   const canViewClients = userPermissions.includes('clients');
   const canViewReports = userPermissions.includes('reports');
 

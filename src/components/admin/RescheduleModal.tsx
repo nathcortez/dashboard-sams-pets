@@ -48,13 +48,21 @@ export default function RescheduleModal({ isOpen, onClose, appointment, onSucces
 
   // Disponibilidad: igual que NewAppointmentModal — cada slot de 30 min es independiente.
   // Un slot está disponible si no hay otra cita con ese horario exacto.
-  const availableTimeSlots = TIME_SLOTS.filter(slot => {
+const availableTimeSlots = TIME_SLOTS.filter(slot => {
     const [slotH, slotM] = slot.split(':').map(Number);
     const slotStart = slotH * 60 + slotM;
+    const slotEnd = slotStart + 30;
 
     return !dayAppointments.some(apt => {
       const [ah, am] = apt.time.split(':').map(Number);
-      return ah * 60 + am === slotStart;
+      const aptStart = ah * 60 + am;
+      const aptDuration =
+        (apt.base_time_minutes || 30) +
+        (apt.service_additional_time || 0) +
+        (apt.recovery_time || 0);
+      const aptEnd = aptStart + aptDuration;
+
+      return slotStart < aptEnd && slotEnd > aptStart;
     });
   });
 
@@ -130,8 +138,7 @@ export default function RescheduleModal({ isOpen, onClose, appointment, onSucces
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Nueva Fecha *</label>
-              <input type="date" value={date || appointment.date} onChange={(e) => { setDate(e.target.value); setTime(''); }} min={today} className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[--azul-principal] focus:border-transparent" required />
-            </div>
+<input type="date" value={date || appointment.date} onChange={(e) => { const selected = new Date(e.target.value + 'T00:00:00'); const day = selected.getDay(); if (day === 0 || day === 6) return; setDate(e.target.value); setTime(''); }} min={today} className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[--azul-principal] focus:border-transparent" required />            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Nueva Hora *</label>
               {availableTimeSlots.length === 0 ? (
