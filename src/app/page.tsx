@@ -11,7 +11,41 @@ import { User, PERMISSIONS, Permission } from '@/types/auth';
 import Sidebar from '@/components/admin/Sidebar';
 import RemindersView from '@/components/admin/RemindersView';
 
-type View = 'inicio' | 'agenda' | 'mascotas' | 'clientes' | 'servicios' | 'recordatorios' | 'reportes' | 'configuracion';
+type View = 'inicio' | 'agenda' | 'mascotas' | 'clientes' | 'fichas' | 'recordatorios' | 'reportes' | 'configuracion';
+
+interface GroomingReport {
+  id?: string;
+  created_at?: string;
+  appointment_id: string;
+  date: string;
+  pet_name: string;
+  pet_breed: string;
+  pet_age: string;
+  pet_sex: string;
+  pet_weight: string;
+  pet_color: string;
+  pet_vaccines: boolean;
+  owner_name: string;
+  owner_phone: string;
+  owner_email: string;
+  service_grooming_detallado: boolean;
+  service_grooming_bano: boolean;
+  service_recuperacion_manto: boolean;
+  service_deslanado_extra: boolean;
+  prob_nudos: boolean;
+  prob_pulgas: boolean;
+  prob_irritacion: boolean;
+  prob_heridas: boolean;
+  prob_mal_olor: boolean;
+  prob_nervioso: boolean;
+  prob_exceso_muda: boolean;
+  prob_comportamiento: boolean;
+  prob_oidos: boolean;
+  prob_unas: boolean;
+  prob_obesidad: boolean;
+  prob_desnutricion: boolean;
+  observations: string;
+}
 
 const SIZE_DURATION: Record<string, number> = {
   pequeno: 30,
@@ -92,6 +126,15 @@ export default function Dashboard() {
   const [selectedPet, setSelectedPet] = useState<string | null>(null);
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
   const [petSearchQuery, setPetSearchQuery] = useState('');
+
+  // Fichas de grooming
+  const [groomingReports, setGroomingReports] = useState<GroomingReport[]>([]);
+  const [selectedReportApt, setSelectedReportApt] = useState<Appointment | null>(null);
+  const [reportForm, setReportForm] = useState<GroomingReport | null>(null);
+  const [reportSaving, setReportSaving] = useState(false);
+  const [reportSaved, setReportSaved] = useState(false);
+  const [reportHistory, setReportHistory] = useState<GroomingReport[]>([]);
+  const [fichasTab, setFichasTab] = useState<'nueva' | 'historial'>('nueva');
 
   const [services, setServices] = useState([
     { id: 'grooming', name: 'Grooming Completo', description: 'Baño, corte de pelo, uñas y oídos', duration: 60, price: 150, emoji: '✂️', active: true },
@@ -1252,61 +1295,278 @@ export default function Dashboard() {
     );
   };
 
-  // ── Render vista de servicios ───────────────────────────────────────────
-  const renderServicesView = () => (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-lg font-semibold text-gray-700">Gestion de Servicios</h2>
-        <button onClick={() => setServiceModal({ mode: 'add' })} className="px-4 py-2 bg-[#E8943D] hover:bg-[#E8943D]/90 text-white rounded-lg transition-colors flex items-center gap-2">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-          Nuevo servicio
-        </button>
-      </div>
-      <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-[#FAFAF8]">
-            <tr>
-              <th className="text-left py-3 px-4 font-medium text-gray-500">Icono</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-500">Servicio</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-500">Descripcion</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-500">Duracion</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-500">Precio</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-500">Estado</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-500">Acciones</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {services.map((service) => (
-              <tr key={service.id} className={`hover:bg-[#FAFAF8] ${!service.active ? 'bg-[#FAFAF8]' : ''}`}>
-                <td className="py-3 px-4 text-2xl">{service.emoji}</td>
-                <td className="py-3 px-4 font-medium text-gray-900">{service.name}</td>
-                <td className="py-3 px-4 text-gray-500 text-sm">{service.description}</td>
-                <td className="py-3 px-4 text-gray-600">{service.duration} min</td>
-                <td className="py-3 px-4 font-medium text-gray-900">Q{service.price}</td>
-                <td className="py-3 px-4">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${service.active ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600'}`}>{service.active ? 'Activo' : 'Inactivo'}</span>
-                </td>
-                <td className="py-3 px-4">
-                  <div className="flex gap-2">
-                    <button onClick={() => setServiceModal({ mode: 'edit', service })} className="p-2 text-[#4A7C59] hover:bg-blue-50 rounded-lg transition-colors" title="Editar">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                    </button>
-                    <button onClick={() => setServices(services.map(s => s.id === service.id ? { ...s, active: !s.active } : s))} className={`p-2 rounded-lg transition-colors ${service.active ? 'text-red-600 hover:bg-red-50' : 'text-green-600 hover:bg-green-50'}`}>
-                      {service.active ? (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
-                      ) : (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                      )}
-                    </button>
+  // ── Render vista de fichas de grooming ─────────────────────────────────
+  const renderFichasView = () => {
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    const todayCompleted = appointments.filter(a => a.date === todayStr && (a.status === 'completada' || a.status === 'en_proceso'));
+
+    const emptyForm = (apt: Appointment): GroomingReport => ({
+      appointment_id: apt.id,
+      date: todayStr,
+      pet_name: apt.pet_name || apt.petName || '',
+      pet_breed: apt.pet_breed || apt.petBreedAge || '',
+      pet_age: '',
+      pet_sex: '',
+      pet_weight: '',
+      pet_color: '',
+      pet_vaccines: false,
+      owner_name: apt.owner_name || apt.ownerName || '',
+      owner_phone: apt.whatsapp || '',
+      owner_email: '',
+      service_grooming_detallado: false,
+      service_grooming_bano: false,
+      service_recuperacion_manto: apt.additional_service || false,
+      service_deslanado_extra: false,
+      prob_nudos: false,
+      prob_pulgas: false,
+      prob_irritacion: false,
+      prob_heridas: false,
+      prob_mal_olor: false,
+      prob_nervioso: false,
+      prob_exceso_muda: false,
+      prob_comportamiento: false,
+      prob_oidos: false,
+      prob_unas: false,
+      prob_obesidad: false,
+      prob_desnutricion: false,
+      observations: '',
+    });
+
+    const handleSelectApt = async (apt: Appointment) => {
+      setSelectedReportApt(apt);
+      setReportSaved(false);
+      // Check if report already exists for this appointment
+      const { data } = await supabase.from('grooming_reports').select('*').eq('appointment_id', apt.id).single();
+      if (data) {
+        setReportForm(data as GroomingReport);
+      } else {
+        setReportForm(emptyForm(apt));
+      }
+    };
+
+    const handleSaveReport = async () => {
+      if (!reportForm) return;
+      setReportSaving(true);
+      try {
+        const { data: existing } = await supabase.from('grooming_reports').select('id').eq('appointment_id', reportForm.appointment_id).single();
+        if (existing) {
+          await supabase.from('grooming_reports').update(reportForm).eq('appointment_id', reportForm.appointment_id);
+        } else {
+          await supabase.from('grooming_reports').insert(reportForm);
+        }
+        setReportSaved(true);
+        setTimeout(() => setReportSaved(false), 3000);
+      } catch (err) {
+        console.error('Error guardando ficha:', err);
+      } finally {
+        setReportSaving(false);
+      }
+    };
+
+    const loadHistory = async () => {
+      const { data } = await supabase.from('grooming_reports').select('*').order('created_at', { ascending: false }).limit(50);
+      setReportHistory(data || []);
+      setFichasTab('historial');
+    };
+
+    const Checkbox = ({ label, checked, onChange }: { label: string; checked: boolean; onChange: () => void }) => (
+      <label className="flex items-center gap-2 cursor-pointer hover:bg-[#F5F3EE] px-2 py-1.5 rounded-lg transition-colors">
+        <div onClick={onChange} className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${checked ? 'bg-[#4A7C59] border-[#4A7C59]' : 'border-gray-300 bg-white'}`}>
+          {checked && <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+        </div>
+        <span className="text-sm text-gray-700">{label}</span>
+      </label>
+    );
+
+    return (
+      <div className="flex gap-6 h-[calc(100vh-140px)]">
+        {/* Columna izquierda — citas del día */}
+        <div className="w-[30%] bg-white rounded-xl shadow-sm border p-4 flex flex-col">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-800">Citas de hoy</h3>
+              <p className="text-xs text-gray-500">{format(new Date(), 'EEEE d MMMM', { locale: es }).charAt(0).toUpperCase() + format(new Date(), 'EEEE d MMMM', { locale: es }).slice(1)}</p>
+            </div>
+            <button onClick={loadHistory} className="text-xs text-[#4A7C59] hover:underline">Ver historial</button>
+          </div>
+
+          {/* Tabs */}
+          <div className="flex gap-2 mb-3">
+            <button onClick={() => setFichasTab('nueva')} className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors ${fichasTab === 'nueva' ? 'bg-[#4A7C59] text-white' : 'bg-[#F5F3EE] text-gray-600'}`}>
+              Nueva ficha
+            </button>
+            <button onClick={loadHistory} className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors ${fichasTab === 'historial' ? 'bg-[#4A7C59] text-white' : 'bg-[#F5F3EE] text-gray-600'}`}>
+              Historial
+            </button>
+          </div>
+
+          {fichasTab === 'nueva' ? (
+            <div className="flex-1 overflow-y-auto space-y-2">
+              {todayCompleted.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <div className="text-4xl mb-3">🐾</div>
+                  <p className="text-sm text-gray-500">No hay citas completadas hoy aún</p>
+                  <p className="text-xs text-gray-400 mt-1">Las citas en proceso o completadas aparecerán aquí</p>
+                </div>
+              ) : todayCompleted.map(apt => (
+                <button key={apt.id} onClick={() => handleSelectApt(apt)}
+                  className={`w-full p-3 rounded-lg text-left transition-all border ${selectedReportApt?.id === apt.id ? 'bg-[#EEF4F0] border-[#4A7C59]' : 'border-transparent hover:bg-[#FAFAF8]'}`}>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center text-sm shrink-0">🐕</div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm text-gray-900 truncate">{apt.pet_name || apt.petName}</p>
+                      <p className="text-xs text-gray-500 truncate">{apt.owner_name || apt.ownerName} · {apt.time}</p>
+                    </div>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${apt.status === 'completada' ? 'bg-green-100 text-green-700' : 'bg-[#F5F3FF] text-[#7C3AED]'}`}>
+                      {apt.status === 'completada' ? '✓' : '✂️'}
+                    </span>
                   </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="flex-1 overflow-y-auto space-y-2">
+              {reportHistory.length === 0 ? (
+                <div className="text-center py-8 text-sm text-gray-400">No hay fichas guardadas</div>
+              ) : reportHistory.map(r => (
+                <button key={r.id} onClick={() => { setReportForm(r); setSelectedReportApt(null); setFichasTab('nueva'); }}
+                  className="w-full p-3 rounded-lg text-left border border-transparent hover:bg-[#FAFAF8] transition-all">
+                  <p className="font-medium text-sm text-gray-900">{r.pet_name}</p>
+                  <p className="text-xs text-gray-500">{r.owner_name} · {r.date ? format(new Date(r.date), 'dd MMM yyyy') : ''}</p>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Columna derecha — formulario de ficha */}
+        <div className="flex-1 bg-white rounded-xl shadow-sm border p-5 flex flex-col overflow-hidden">
+          {!reportForm ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-center">
+              <div className="text-5xl mb-4">📋</div>
+              <p className="text-gray-500 font-medium">Selecciona una cita para llenar su ficha</p>
+              <p className="text-sm text-gray-400 mt-1">Las citas en proceso o completadas aparecen en el panel izquierdo</p>
+            </div>
+          ) : (
+            <>
+              {/* Header */}
+              <div className="flex items-center justify-between mb-4 pb-3 border-b">
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900">Ficha de Grooming</h2>
+                  <p className="text-sm text-gray-500">{reportForm.pet_name} · {reportForm.owner_name}</p>
+                </div>
+                <button onClick={handleSaveReport} disabled={reportSaving}
+                  className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors ${reportSaved ? 'bg-green-500 text-white' : 'bg-[#4A7C59] hover:bg-[#3D6A4B] text-white'} disabled:opacity-50`}>
+                  {reportSaving ? 'Guardando...' : reportSaved ? '✓ Guardado' : 'Guardar ficha'}
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto space-y-5 pr-1">
+                {/* Sección: Datos del perro */}
+                <div>
+                  <h3 className="text-sm font-semibold text-[#4A7C59] mb-3 flex items-center gap-2">🐶 Datos del perro</h3>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Nombre</label>
+                      <input value={reportForm.pet_name} onChange={e => setReportForm({...reportForm, pet_name: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#4A7C59]" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Raza</label>
+                      <input value={reportForm.pet_breed} onChange={e => setReportForm({...reportForm, pet_breed: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#4A7C59]" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Edad</label>
+                      <input value={reportForm.pet_age} onChange={e => setReportForm({...reportForm, pet_age: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#4A7C59]" placeholder="ej. 2 años" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Sexo</label>
+                      <select value={reportForm.pet_sex} onChange={e => setReportForm({...reportForm, pet_sex: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#4A7C59]">
+                        <option value="">Seleccionar</option>
+                        <option value="Macho">Macho</option>
+                        <option value="Hembra">Hembra</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Peso</label>
+                      <input value={reportForm.pet_weight} onChange={e => setReportForm({...reportForm, pet_weight: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#4A7C59]" placeholder="ej. 5 kg" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Color</label>
+                      <input value={reportForm.pet_color} onChange={e => setReportForm({...reportForm, pet_color: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#4A7C59]" placeholder="ej. Blanco" />
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <Checkbox label="Vacunas al día" checked={reportForm.pet_vaccines} onChange={() => setReportForm({...reportForm, pet_vaccines: !reportForm.pet_vaccines})} />
+                  </div>
+                </div>
+
+                {/* Sección: Datos del dueño */}
+                <div>
+                  <h3 className="text-sm font-semibold text-[#4A7C59] mb-3 flex items-center gap-2">👤 Datos del dueño</h3>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Nombre</label>
+                      <input value={reportForm.owner_name} onChange={e => setReportForm({...reportForm, owner_name: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#4A7C59]" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Teléfono</label>
+                      <input value={reportForm.owner_phone} onChange={e => setReportForm({...reportForm, owner_phone: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#4A7C59]" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Correo (opcional)</label>
+                      <input value={reportForm.owner_email} onChange={e => setReportForm({...reportForm, owner_email: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#4A7C59]" placeholder="opcional" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sección: Servicio realizado */}
+                <div>
+                  <h3 className="text-sm font-semibold text-[#4A7C59] mb-3 flex items-center gap-2">✂️ Servicio realizado</h3>
+                  <div className="grid grid-cols-2 gap-1">
+                    <Checkbox label="Grooming detallado" checked={reportForm.service_grooming_detallado} onChange={() => setReportForm({...reportForm, service_grooming_detallado: !reportForm.service_grooming_detallado})} />
+                    <Checkbox label="Grooming baño" checked={reportForm.service_grooming_bano} onChange={() => setReportForm({...reportForm, service_grooming_bano: !reportForm.service_grooming_bano})} />
+                    <Checkbox label="Recuperación de manto" checked={reportForm.service_recuperacion_manto} onChange={() => setReportForm({...reportForm, service_recuperacion_manto: !reportForm.service_recuperacion_manto})} />
+                    <Checkbox label="Deslanado extra" checked={reportForm.service_deslanado_extra} onChange={() => setReportForm({...reportForm, service_deslanado_extra: !reportForm.service_deslanado_extra})} />
+                  </div>
+                </div>
+
+                {/* Sección: Problemas encontrados */}
+                <div>
+                  <h3 className="text-sm font-semibold text-[#4A7C59] mb-3 flex items-center gap-2">🚿 Problemas encontrados</h3>
+                  <div className="grid grid-cols-3 gap-1">
+                    <Checkbox label="Nudos/enredos" checked={reportForm.prob_nudos} onChange={() => setReportForm({...reportForm, prob_nudos: !reportForm.prob_nudos})} />
+                    <Checkbox label="Pulgas/garrapatas" checked={reportForm.prob_pulgas} onChange={() => setReportForm({...reportForm, prob_pulgas: !reportForm.prob_pulgas})} />
+                    <Checkbox label="Irritación/alergias" checked={reportForm.prob_irritacion} onChange={() => setReportForm({...reportForm, prob_irritacion: !reportForm.prob_irritacion})} />
+                    <Checkbox label="Heridas/cortes" checked={reportForm.prob_heridas} onChange={() => setReportForm({...reportForm, prob_heridas: !reportForm.prob_heridas})} />
+                    <Checkbox label="Mal olor" checked={reportForm.prob_mal_olor} onChange={() => setReportForm({...reportForm, prob_mal_olor: !reportForm.prob_mal_olor})} />
+                    <Checkbox label="Nervioso" checked={reportForm.prob_nervioso} onChange={() => setReportForm({...reportForm, prob_nervioso: !reportForm.prob_nervioso})} />
+                    <Checkbox label="Exceso de muda" checked={reportForm.prob_exceso_muda} onChange={() => setReportForm({...reportForm, prob_exceso_muda: !reportForm.prob_exceso_muda})} />
+                    <Checkbox label="Comportamiento difícil" checked={reportForm.prob_comportamiento} onChange={() => setReportForm({...reportForm, prob_comportamiento: !reportForm.prob_comportamiento})} />
+                    <Checkbox label="Problemas en oídos" checked={reportForm.prob_oidos} onChange={() => setReportForm({...reportForm, prob_oidos: !reportForm.prob_oidos})} />
+                    <Checkbox label="Problemas en uñas" checked={reportForm.prob_unas} onChange={() => setReportForm({...reportForm, prob_unas: !reportForm.prob_unas})} />
+                    <Checkbox label="Obesidad" checked={reportForm.prob_obesidad} onChange={() => setReportForm({...reportForm, prob_obesidad: !reportForm.prob_obesidad})} />
+                    <Checkbox label="Desnutrición" checked={reportForm.prob_desnutricion} onChange={() => setReportForm({...reportForm, prob_desnutricion: !reportForm.prob_desnutricion})} />
+                  </div>
+                </div>
+
+                {/* Sección: Observaciones */}
+                <div>
+                  <h3 className="text-sm font-semibold text-[#4A7C59] mb-3 flex items-center gap-2">📝 Observaciones</h3>
+                  <textarea
+                    value={reportForm.observations}
+                    onChange={e => setReportForm({...reportForm, observations: e.target.value})}
+                    rows={3}
+                    placeholder="Notas adicionales sobre el grooming, comportamiento del perro, recomendaciones al dueño..."
+                    className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#4A7C59] resize-none"
+                  />
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   // ── Render vista de configuracion ───────────────────────────────────────
   const renderConfigView = () => (
@@ -1405,7 +1665,7 @@ export default function Dashboard() {
               {currentView === 'agenda' && 'Agenda'}
               {currentView === 'mascotas' && 'Mascotas'}
               {currentView === 'clientes' && 'Clientes'}
-              {currentView === 'servicios' && 'Servicios'}
+              {currentView === 'fichas' && 'Fichas de Grooming'}
               {currentView === 'recordatorios' && 'Recordatorios'}
               {currentView === 'reportes' && 'Reportes'}
               {currentView === 'configuracion' && 'Configuración'}
@@ -1515,7 +1775,7 @@ export default function Dashboard() {
           {currentView === 'clientes' && canViewClients && renderClientsView()}
           {currentView === 'mascotas' && renderPetsView()}
           {currentView === 'reportes' && canViewReports && renderReportsView()}
-          {currentView === 'servicios' && canViewReports && renderServicesView()}
+          {currentView === 'fichas' && renderFichasView()}
           {currentView === 'recordatorios' && <RemindersView />}
           {currentView === 'configuracion' && canViewReports && renderConfigView()}
         </main>
