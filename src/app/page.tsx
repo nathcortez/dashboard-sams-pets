@@ -285,7 +285,7 @@ export default function Dashboard() {
       if (error) throw error;
       setAppointments(data || []);
     } catch (err) {
-      console.error('Error fetching appointments:', err);
+      console.error('Error fetching appointments:', JSON.stringify(error), error);
     } finally {
       setLoading(false);
     }
@@ -451,7 +451,9 @@ export default function Dashboard() {
     const petMap: Record<string, Pet> = {};
 
     appointments.forEach(apt => {
-      const petKey = `${apt.pet_name || apt.petName}-${apt.whatsapp}`;
+      const normalizedPhone = (apt.whatsapp || '').replace(/\D/g, '').trim();
+const normalizedName = (apt.pet_name || apt.petName || '').toLowerCase().trim();
+const petKey = `${normalizedName}-${normalizedPhone}`;;
       if (!petKey || !(apt.pet_name || apt.petName)) return;
 
       if (!petMap[petKey]) {
