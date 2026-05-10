@@ -285,7 +285,7 @@ export default function Dashboard() {
       if (error) throw error;
       setAppointments(data || []);
     } catch (err) {
-      console.error('Error fetching appointments:', JSON.stringify(error), error);
+      console.error('Error fetching appointments:', JSON.stringify(err), err);
     } finally {
       setLoading(false);
     }
