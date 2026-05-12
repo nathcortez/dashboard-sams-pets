@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 import { User } from '@/types/auth';
 
 interface SidebarProps {
@@ -16,7 +15,7 @@ const MENU_ITEMS = [
   { id: 'agenda', name: 'Agenda', icon: '📅' },
   { id: 'mascotas', name: 'Mascotas', icon: '🐕' },
   { id: 'clientes', name: 'Clientes', icon: '👥' },
-  { id: 'servicios', name: 'Servicios', icon: '✂️' },
+  { id: 'fichas', name: 'Fichas', icon: '📋' },
   { id: 'recordatorios', name: 'Recordatorios', icon: '🔔' },
   { id: 'reportes', name: 'Reportes', icon: '📊' },
   { id: 'configuracion', name: 'Configuración', icon: '⚙️' },
@@ -43,7 +42,6 @@ export default function Sidebar({ currentSection, onSectionChange, user, onLogou
         bg-white text-[#4A4A4A] border-r border-[#E8E4DC]
       `}
     >
-      {/* Logo */}
       <div className="p-4 border-b border-[#E8E4DC] flex items-center justify-center">
         {collapsed ? (
           <span className="text-2xl" style={{ color: '#4A7C59' }}>🐾</span>
@@ -55,7 +53,6 @@ export default function Sidebar({ currentSection, onSectionChange, user, onLogou
         )}
       </div>
 
-      {/* Toggle button */}
       <button
         onClick={() => setCollapsed(!collapsed)}
         className="absolute -right-3 top-20 bg-white border border-[#E8E4DC] rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-[#F5F3EE] transition-colors shadow-sm"
@@ -63,7 +60,6 @@ export default function Sidebar({ currentSection, onSectionChange, user, onLogou
         {collapsed ? '→' : '←'}
       </button>
 
-      {/* Menu */}
       <nav className="flex-1 py-4">
         <ul className="space-y-1 px-2">
           {MENU_ITEMS.map((item) => (
@@ -89,18 +85,13 @@ export default function Sidebar({ currentSection, onSectionChange, user, onLogou
         </ul>
       </nav>
 
-      {/* User info & logout */}
       <div className="p-4 border-t border-[#E8E4DC]">
         {collapsed ? (
           <div className="flex flex-col items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-[#4A7C59] flex items-center justify-center text-white text-xs font-medium">
               {getInitials(user?.displayName)}
             </div>
-            <button
-              onClick={onLogout}
-              className="flex items-center justify-center py-2 text-[#C0392B] hover:underline transition-colors"
-              title="Cerrar sesión"
-            >
+            <button onClick={onLogout} className="flex items-center justify-center py-2 text-[#C0392B] hover:underline transition-colors" title="Cerrar sesión">
               🚪
             </button>
           </div>
@@ -117,10 +108,7 @@ export default function Sidebar({ currentSection, onSectionChange, user, onLogou
                 </p>
               </div>
             </div>
-            <button
-              onClick={onLogout}
-              className="w-full py-2 px-3 rounded-lg text-sm text-[#C0392B] hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
-            >
+            <button onClick={onLogout} className="w-full py-2 px-3 rounded-lg text-sm text-[#C0392B] hover:bg-red-50 transition-colors flex items-center justify-center gap-2">
               <span>🚪</span>
               Cerrar sesión
             </button>
